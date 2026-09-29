@@ -23,7 +23,7 @@
 <header class="top" id="top">
   <a class="brand" href="#top" aria-label="TheNobles home">
     <img src="img/logo.jpg" alt="TheNobles logo" class="logo">
-    <span><b>TheNobles</b><small>gift &amp; surprise hub</small></span>
+    <span><small class="greet" id="greet"></small><b>TheNobles</b><small class="sub">gift &amp; surprise hub</small></span>
   </a>
   <nav class="links" aria-label="Main">
     <a href="#categories">Categories</a>
@@ -43,6 +43,20 @@
 </header>
 
 <main>
+<!-- MOBILE HERO (phones only) -->
+<section class="m-hero">
+  <form class="m-search" id="mSearch" role="search">
+    <input id="mq" type="search" placeholder="Search for gifts, flowers…" aria-label="Search gifts">
+    <button type="submit" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.500-3.500"/></svg></button>
+  </form>
+  <div class="m-slides" id="mSlides">
+    <article class="m-slide" style="--bg:url(img/p10.jpg)"><small>Today’s special</small><h2>Balloon, cake &amp; bouquet sets</h2><p>Named surprise hampers</p><a class="btn primary" href="#shop" data-filter="balloons">Order now</a></article>
+    <article class="m-slide" style="--bg:url(img/p16.jpg)"><small>Fresh &amp; romantic</small><h2>Rose bouquets that say it all</h2><p>Made to order in Accra</p><a class="btn primary" href="#shop" data-filter="bouquets">Order now</a></article>
+    <article class="m-slide" style="--bg:url(img/p02.jpg)"><small>For him &amp; her</small><h2>Luxury gift boxes</h2><p>Polos, bags, watches &amp; more</p><a class="btn primary" href="#shop" data-filter="boxes">Order now</a></article>
+  </div>
+  <div class="m-dots" id="mDots"><i class="on"></i><i></i><i></i></div>
+</section>
+
 <!-- HERO -->
 <section class="hero wrap">
   <div class="hero-copy">
@@ -81,7 +95,7 @@
 
 <!-- CATEGORIES -->
 <section class="wrap" id="categories">
-  <div class="sec-head"><h2>Shop by category</h2></div>
+  <div class="sec-head"><h2>Categories</h2></div>
   <div class="cats" id="cats"></div>
 </section>
 

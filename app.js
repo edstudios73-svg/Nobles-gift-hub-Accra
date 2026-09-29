@@ -182,5 +182,15 @@ $('#checkout').addEventListener('submit', e => {
 
 /* ---------- misc ---------- */
 let tt; function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 1600); }
+/* mobile hero: greeting, search, carousel dots */
+(() => { const h = new Date().getHours(); $('#greet').textContent = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })();
+$('#mSearch').addEventListener('submit', e => { e.preventDefault(); $('#shop').scrollIntoView(); });
+$('#mq').addEventListener('input', e => { state.q = e.target.value; $('#q').value = e.target.value; renderGrid(); });
+$('#q').addEventListener('input', e => { $('#mq').value = e.target.value; });
+const slides = $('#mSlides');
+slides.addEventListener('scroll', () => {
+  const i = Math.round(slides.scrollLeft / slides.clientWidth);
+  $$('#mDots i').forEach((d, k) => d.classList.toggle('on', k === i));
+}, { passive: true });
 $('#yr').textContent = new Date().getFullYear();
 renderGrid(); renderCart();
