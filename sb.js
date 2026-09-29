@@ -43,7 +43,7 @@ window.SB = (() => {
     return t ? JSON.parse(t) : null;
   }
 
-  return {
+  const api = {
     get session() { return session; },
     async signIn(email, password) {
       const res = await fetch(cfg.url + '/auth/v1/token?grant_type=password', {
@@ -82,4 +82,6 @@ window.SB = (() => {
       return `${cfg.url}/storage/v1/object/public/${bucket}/${path}`;
     },
   };
+  api.attach = impl => Object.defineProperties(api, Object.getOwnPropertyDescriptors(impl));
+  return api;
 })();

@@ -109,8 +109,12 @@ let FEATURED = ['p16', 'm52', 'p23', 'm48', 'm21', 'p02', 'p09', 'p12'];
 CATEGORIES = CATEGORIES.map(c => ({ ...c, image: `img/${c.img}.jpg` }));
 
 /* Live catalogue from Supabase (falls back to the list above if it is unreachable) */
+const DEMO_ON = !(window.NOBLES_CONFIG && NOBLES_CONFIG.url) && localStorage.getItem('nobles-demo') === '1';
+let HAS_BACKEND = !!(window.NOBLES_CONFIG && NOBLES_CONFIG.url);
+const loadScript = src => new Promise(res => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = res; document.head.appendChild(s); });
 async function loadRemote() {
-  if (!window.SB || !window.NOBLES_CONFIG || !NOBLES_CONFIG.url) return;
+  if (DEMO_ON) { await loadScript('demo.js'); if (window.NOBLES_DEMO) { SB.attach(window.NOBLES_DEMO); HAS_BACKEND = true; } }
+  if (!HAS_BACKEND) return;
   try {
     const t = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
     const [cats, prods] = await Promise.race([
@@ -272,6 +276,10 @@ const overlays = `
 
 document.body.insertAdjacentHTML('afterbegin', header);
 document.body.insertAdjacentHTML('beforeend', footer + dock + overlays);
+if (DEMO_ON) {
+  document.body.insertAdjacentHTML('afterbegin', '<div class="demobar"><span>Demo data is on in this browser</span><button id="demoOff">Turn off</button></div>');
+  $('#demoOff').addEventListener('click', () => { localStorage.removeItem('nobles-demo'); location.reload(); });
+}
 
 (async () => {
 await loadRemote();
@@ -443,7 +451,7 @@ $('#checkout').addEventListener('submit', async e => {
   const gift = $('#giftToggle').checked;
   const items = cart.map(l => { const p = PRODUCTS.find(x => x.id === l.id); return { slug: p.id, name: p.name, qty: l.qty, note: l.note || '' }; });
   let ref = '';
-  try {
+  if (HAS_BACKEND) try {
     ref = await SB.rpc('submit_order', { payload: {
       name, phone, fulfilment: delivery ? 'Delivery' : 'Pickup', address: (f.get('address') || '').trim(),
       event_date: f.get('date') || '', event_time: f.get('time') || '', is_gift: gift,
@@ -481,7 +489,7 @@ if (cf) cf.addEventListener('submit', async e => {
   const f = new FormData(cf);
   const nm = (f.get('name') || '').trim(), ph = (f.get('phone') || '').trim(), msg = (f.get('message') || '').trim();
   const w = window.open('about:blank', '_blank');
-  try { await SB.rpc('submit_message', { p_name: nm, p_phone: ph, p_message: msg }); } catch (x) {}
+  if (HAS_BACKEND) try { await SB.rpc('submit_message', { p_name: nm, p_phone: ph, p_message: msg }); } catch (x) {}
   openWhatsApp(`Hello TheNobles, my name is ${nm}.\n${msg}`, w);
   cf.reset(); toast('Message sent');
 });
@@ -489,7 +497,8 @@ if (cf) cf.addEventListener('submit', async e => {
 /* ---------- reviews ---------- */
 const stars = n => '★'.repeat(n) + '<i>' + '★'.repeat(5 - n) + '</i>';
 const reviewList = $('#reviewList');
-if (reviewList) {
+if (reviewList && HAS_BACKEND) {
+  $('#reviews').hidden = false;
   (async () => {
     let rows = [];
     try { rows = await SB.select('reviews', 'select=name,rating,comment&status=eq.approved&order=created_at.desc&limit=6'); } catch (x) {}
@@ -504,6 +513,7 @@ $('#reviewForm').addEventListener('submit', async e => {
   e.preventDefault();
   const f = new FormData(e.target), err = $('#rErr');
   try {
+    if (!HAS_BACKEND) throw new Error('offline');
     await SB.rpc('submit_review', { p_name: (f.get('name') || '').trim(), p_rating: Number(f.get('rating')), p_comment: (f.get('comment') || '').trim() });
     e.target.reset(); closeAll(); toast('Thank you. Your review is awaiting approval.');
   } catch (x) { err.textContent = 'Could not send your review. Please try again.'; err.hidden = false; }
