@@ -88,21 +88,17 @@ const header = `
   </div>
 </header>`;
 
+const SOCIALS = [
+  ['Instagram', 'https://www.instagram.com/thenobles.gift_hub', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>'],
+  ['TikTok', 'https://www.tiktok.com/@thenobles.gift.hub', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.5a3.5 3.5 0 1 1-3.500-3.500"/><path d="M14 4c.4 2.600 2.100 4.200 5 4.400"/></svg>'],
+  ['Snapchat', 'https://snapchat.com/t/fTYPJ3nl', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3.500c-3 0-4.500 2.200-4.500 4.700v1.800c-.6.100-1.300.3-1.900.500.500.900 1.100 1.100 1.700 1.300-.4 1.500-1.700 2.600-3.100 3 .8.700 1.900.9 2.900 1 .3.600.4 1.300 1.100 1.300.8 0 1.500-.5 2.800-.5s2 .5 2.800.5c.7 0 .8-.7 1.100-1.300 1-.1 2.100-.3 2.900-1-1.400-.4-2.700-1.500-3.100-3 .6-.2 1.200-.4 1.700-1.300-.6-.2-1.300-.4-1.900-.5V8.200c0-2.500-1.500-4.700-4.500-4.700z"/></svg>'],
+];
+
 const footer = `
 <footer>
-  <div class="foot wrap">
-    <div class="foot-brand">
-      <img src="img/logo.jpg" alt="" class="logo">
-      <div><b>TheNobles.gift&amp;surprise_hub</b><p>Gifts and surprises made by hand in Accra.</p></div>
-    </div>
-    <nav aria-label="Footer">${PAGES.map(([, href, label]) => `<a href="${href}">${label}</a>`).join('')}</nav>
-    <div class="foot-contact">
-      <a href="tel:+233${PHONE.slice(1)}">${PHONE}</a>
-      <a href="mailto:${EMAIL}">${EMAIL}</a>
-      <span>NIMA &amp; UPSA, Accra</span>
-    </div>
+  <div class="socials" aria-label="Follow TheNobles">
+    ${SOCIALS.map(([n, href, svg]) => `<a href="${href}" target="_blank" rel="noopener" aria-label="${n}" title="${n}">${svg}</a>`).join('')}
   </div>
-  <p class="copy">© <span id="yr"></span> TheNobles.gift&amp;surprise_hub · Owner: Rashida Yussif</p>
 </footer>`;
 
 const dock = `
@@ -356,5 +352,4 @@ if (cf) cf.addEventListener('submit', e => {
 /* ---------- misc ---------- */
 let tt; function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 1600); }
 (() => { const h = new Date().getHours(); $('#greet').textContent = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })();
-$('#yr').textContent = new Date().getFullYear();
 renderCart();
