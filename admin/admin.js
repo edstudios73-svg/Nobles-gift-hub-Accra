@@ -23,6 +23,9 @@ const I = {
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.600-4.700A8.500 8.500 0 1 1 8 19.500L3 21z"/></svg>',
   phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 4h4l2 5-2.500 1.500a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
   cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.500"/></svg>',
 };
 
@@ -103,7 +106,7 @@ async function verifyAdmin() {
   return false;
 }
 function loginHtml(msg = '') {
-  return `<div class="login"><div class="login-card">
+  return `<div class="login"><span class="orb a"></span><span class="orb b"></span><div class="login-card">
     <img class="logo" src="/img/logo.jpg" alt="TheNobles">
     <p class="eyebrow">Admin</p>
     <h1 class="gold">TheNobles</h1>
@@ -114,7 +117,7 @@ function loginHtml(msg = '') {
       <label class="field">Password<input name="password" type="password" autocomplete="current-password" required placeholder="Your password"></label>
       <p class="err" id="loginErr" ${msg ? '' : 'hidden'}>${esc(msg)}</p>
       <button class="btn gold wide" type="submit">Sign in</button>
-    </form></div></div>`;
+    </form><p class="secure">${I.lock} Private area. Only the shop owner can sign in.</p></div></div>`;
 }
 function bindLogin() {
   $('#loginForm').addEventListener('submit', async e => {
@@ -135,7 +138,7 @@ async function logout() { await SB.signOut(); S.user = null; app.innerHTML = log
 
 /* ---------- shell + router ---------- */
 function startShell() {
-  const nav = NAV.map(([k, l, ic]) => `<a href="#/${k}" data-k="${k}">${ic}<span>${l}</span>${['orders', 'reviews', 'messages'].includes(k) ? `<i class="dotb" data-badge="${k}" hidden></i>` : ''}</a>`).join('');
+  const nav = NAV.map(([k, l, ic], i) => (i === 0 ? '<p class="lbl">Overview</p>' : i === 1 ? '<p class="lbl">Manage</p>' : i === 5 ? '<p class="lbl">Shop</p>' : '') + `<a href="#/${k}" data-k="${k}">${ic}<span>${l}</span>${['orders', 'reviews', 'messages'].includes(k) ? `<i class="dotb" data-badge="${k}" hidden></i>` : ''}</a>`).join('');
   const tabs = TAB_KEYS.map(k => {
     const n = { dashboard: ['Home', I.home], orders: ['Orders', I.orders], products: ['Products', I.box], reviews: ['Reviews', I.star], more: ['More', I.more] }[k];
     const badge = ['orders', 'reviews'].includes(k) ? `<i class="dotb" data-badge="${k}" hidden></i>` : k === 'more' ? '<i class="dotb" data-badge="messages" hidden></i>' : '';
@@ -143,7 +146,7 @@ function startShell() {
   }).join('');
   app.innerHTML = `${S.demo ? '<div class="demobar"><span><b>DEMO</b> sample data saved only in this browser</span><button data-act="demo-reset">Reset</button></div>' : ''}<div class="shell">
     <aside class="side"><div class="brand"><img src="/img/logo.jpg" alt=""><div><b>TheNobles</b><small>Admin</small></div></div>${nav}
-      <span class="sp"></span><a href="${SITE}/" target="_blank" rel="noopener">${I.ext}<span>View website</span></a><button data-act="logout">${I.out}<span>Sign out</span></button></aside>
+      <span class="sp"></span><div class="who"><span class="av">R</span><div><b>Rashida Yussif</b><small>${esc(S.user && S.user.email)}</small></div></div><a href="${SITE}/" target="_blank" rel="noopener">${I.ext}<span>View website</span></a><button data-act="logout">${I.out}<span>Sign out</span></button></aside>
     <div>
       <header class="topbar"><img class="logo" src="/img/logo.jpg" alt=""><div class="ttl"><small>Admin</small><b id="ttl">Home</b></div>
         <a class="iconbtn" href="${SITE}/" target="_blank" rel="noopener" aria-label="View website">${I.ext}</a></header>
@@ -166,6 +169,18 @@ async function refreshBadges() {
   } catch (e) {}
 }
 const VIEWS = {};
+function stagger(root) { $$('.list,.pgrid,.kpis,.stack,.att', root).forEach(c => [...c.children].forEach((el, i) => el.style.setProperty('--i', Math.min(i, 14)))); }
+function countUp(root) {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $$('[data-to]', root).forEach(el => {
+    const to = Number(el.dataset.to), money = el.dataset.fmt === 'money';
+    const f = v => (money ? 'GH₵ ' : '') + Math.round(v).toLocaleString('en-GH');
+    if (reduce || !to) return void (el.textContent = f(to));
+    const t0 = performance.now(), dur = 1000;
+    const step = t => { const p = Math.min(1, (t - t0) / dur); el.textContent = f(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+}
 async function route() {
   const key = (location.hash.replace('#/', '') || 'dashboard').split('?')[0];
   const k = VIEWS[key] ? key : 'dashboard';
@@ -174,13 +189,23 @@ async function route() {
   $$('[data-k]').forEach(a => a.classList.toggle('on', a.dataset.k === k || (a.dataset.k === 'more' && ['messages', 'categories', 'settings'].includes(k))));
   window.scrollTo(0, 0);
   const v = $('#view');
+  v.classList.add('enter'); clearTimeout(S.enterT); S.enterT = setTimeout(() => v.classList.remove('enter'), 1400);
   v.innerHTML = '<div class="sk"></div><div class="sk"></div><div class="sk"></div>';
-  try { await VIEWS[k](v); } catch (e) {
+  try { await VIEWS[k](v); stagger(v); } catch (e) {
     v.innerHTML = `<div class="empty"><b>Could not load</b>${esc(e.message)}<br><br><button class="btn ghost" data-act="reload">Try again</button></div>`;
   }
 }
 
 /* ---------- dashboard ---------- */
+function areaChart(vals) {
+  const W = 300, H = 100, n = vals.length, max = Math.max(1, ...vals);
+  const pts = vals.map((v, i) => [i * (W / (n - 1)), H - 10 - (v / max) * (H - 30)]);
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < n - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], cx = (x0 + x1) / 2; d += ` C${cx},${y0} ${cx},${y1} ${x1},${y1}`; }
+  const dots = pts.map((p, i) => vals[i] ? `<span class="dot" style="left:${p[0] / W * 100}%;top:${p[1] / H * 100}%"><em>${vals[i]}</em></span>` : '').join('');
+  return `<div class="area"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d6ae66" stop-opacity=".45"/><stop offset="1" stop-color="#d6ae66" stop-opacity="0"/></linearGradient></defs>
+    <path d="${d} L${W},${H} L0,${H} Z" fill="url(#ag)"/><path class="draw" d="${d}" fill="none" stroke="#f4dba0" stroke-width="2.5" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>${dots}</div>`;
+}
 VIEWS.dashboard = async v => {
   const [orders, prodCount] = await Promise.all([
     SB.select('orders', 'select=id,ref,customer_name,status,total,paid,items,created_at&order=created_at.desc&limit=300'),
@@ -192,32 +217,49 @@ VIEWS.dashboard = async v => {
   const pipeline = orders.filter(o => ['new', 'confirmed', 'in_progress', 'ready'].includes(o.status)).reduce((s, o) => s + Number(o.total || 0), 0);
   const revenue = orders.filter(o => o.status === 'delivered').reduce((s, o) => s + Number(o.total || 0), 0);
   const days = [...Array(7)].map((_, i) => { const d = new Date(day0 - (6 - i) * 864e5); return { d, n: orders.filter(o => new Date(o.created_at) >= d && new Date(o.created_at) < new Date(+d + 864e5)).length }; });
-  const max = Math.max(1, ...days.map(x => x.n));
-  const hr = now.getHours();
-  const greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  const hr = now.getHours(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  const nNew = S.badges.orders, nRev = S.badges.reviews, nMsg = S.badges.messages;
+  const byStatus = Object.keys(STATUS).map(s => [s, orders.filter(o => o.status === s).length]);
+  const totalO = Math.max(1, orders.length);
+  const sold = {};
+  orders.filter(o => o.status !== 'cancelled').forEach(o => (o.items || []).forEach(i => { sold[i.name] = (sold[i.name] || 0) + Number(i.qty || 1); }));
+  const top = Object.entries(sold).sort((a, b) => b[1] - a[1]).slice(0, 5), topMax = top.length ? top[0][1] : 1;
+  const kpi = (ic, label, to, note, hot) => `<div class="kpi ${hot ? 'hot' : ''}"><span class="ic">${ic}</span><small>${label}</small><b data-to="${to}">0</b><span class="n">${note}</span></div>`;
   v.innerHTML = `
-    <div class="page-h"><div><p class="eyebrow">${now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</p><h1>${greet}, <span class="gold">Rashida</span></h1></div></div>
-    ${localStorage.getItem('nobles-pw-changed') ? '' : `<div class="banner"><span>For your security, change your password.</span><button data-go="settings">Change now</button></div>`}
+    <section class="hero">
+      <div>
+        <p class="eyebrow">${now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+        <h1>${greet}, <span class="gold">Rashida</span></h1>
+        <p class="sub">${nNew ? `You have ${nNew} new order${nNew > 1 ? 's' : ''} waiting for you.` : 'You are all caught up. Nice work.'}</p>
+        <div class="big"><small>Delivered revenue</small><b data-to="${revenue}" data-fmt="money">GH₵ 0</b></div>
+        <div class="chipline"><span class="chp">In progress <b>${money(pipeline) || 'GH₵ 0'}</b></span><span class="chp ${nNew ? 'hot' : ''}"><b>${nNew}</b> new</span><span class="chp"><b>${week.length}</b> this week</span></div>
+      </div>
+      <div class="chartbox"><p class="cap">Orders, last 7 days</p>${areaChart(days.map(x => x.n))}<div class="days">${days.map(x => `<span>${x.d.toLocaleDateString('en-GB', { weekday: 'short' })}</span>`).join('')}</div></div>
+    </section>
+    ${localStorage.getItem('nobles-pw-changed') ? '' : `<div class="banner rise"><span>For your security, change your password.</span><button data-go="settings">Change now</button></div>`}
     <div class="kpis">
-      <div class="kpi ${S.badges.orders ? 'hot' : ''}"><small>New orders</small><b>${S.badges.orders}</b><span>waiting for you</span></div>
-      <div class="kpi"><small>Orders this week</small><b>${week.length}</b><span>last 7 days</span></div>
-      <div class="kpi"><small>In progress value</small><b>${money(pipeline) || 'GH₵ 0'}</b><span>open orders</span></div>
-      <div class="kpi"><small>Delivered revenue</small><b>${money(revenue) || 'GH₵ 0'}</b><span>all time</span></div>
-    </div>
-    <div class="kpis">
-      <div class="kpi"><small>Live products</small><b>${prodCount}</b><span>on the website</span></div>
-      <div class="kpi ${S.badges.reviews ? 'hot' : ''}"><small>Reviews to approve</small><b>${S.badges.reviews}</b><span>pending</span></div>
-      <div class="kpi ${S.badges.messages ? 'hot' : ''}"><small>Unread messages</small><b>${S.badges.messages}</b><span>from the website</span></div>
-      <div class="kpi"><small>All orders</small><b>${orders.length}</b><span>recorded</span></div>
+      ${kpi(I.orders, 'New orders', nNew, 'waiting for you', nNew)}
+      ${kpi(I.chart, 'This week', week.length, 'orders in 7 days')}
+      ${kpi(I.box, 'Live products', prodCount, 'on the website')}
+      ${kpi(I.star, 'Reviews to approve', nRev, 'pending', nRev)}
+      ${kpi(I.mail, 'Unread messages', nMsg, 'from the website', nMsg)}
+      ${kpi(I.orders, 'All orders', orders.length, 'recorded')}
     </div>
     <div class="grid2">
-      <div class="card"><h3>Recent orders</h3><div class="list">${orders.slice(0, 5).map(orderRow).join('') || '<div class="empty"><b>No orders yet</b>Orders from the website will appear here.</div>'}</div>
-        ${orders.length > 5 ? '<p style="margin-top:14px"><a class="btn ghost sm" href="#/orders">See all orders</a></p>' : ''}</div>
-      <div style="display:grid;gap:16px;align-content:start">
-        <div class="card"><h3>Orders, last 7 days</h3><div class="chart">${days.map(x => `<div><em>${x.n}</em><i class="${x.n ? '' : 'z'}" style="height:${Math.max(3, x.n / max * 78)}%"></i><span>${x.d.toLocaleDateString('en-GB', { weekday: 'short' })}</span></div>`).join('')}</div></div>
+      <div class="card"><h3>Recent orders <small>${orders.length} total</small></h3><div class="list">${orders.slice(0, 6).map(orderRow).join('') || '<div class="empty"><b>No orders yet</b>Orders from the website will appear here.</div>'}</div>
+        ${orders.length > 6 ? '<p style="margin-top:14px"><a class="btn ghost sm" href="#/orders">See all orders</a></p>' : ''}</div>
+      <div class="stack">
+        <div class="card"><h3>Needs your attention</h3><div class="att">
+          <a href="#/orders"><span class="ic">${I.orders}</span><b>New orders</b><span class="cnt ${nNew ? 'on' : ''}">${nNew}</span>${I.arrow}</a>
+          <a href="#/reviews"><span class="ic">${I.star}</span><b>Reviews to approve</b><span class="cnt ${nRev ? 'on' : ''}">${nRev}</span>${I.arrow}</a>
+          <a href="#/messages"><span class="ic">${I.mail}</span><b>Unread messages</b><span class="cnt ${nMsg ? 'on' : ''}">${nMsg}</span>${I.arrow}</a></div></div>
+        <div class="card"><h3>Order status</h3><div class="stackbar">${byStatus.map(([s, n]) => `<i class="c-${s}" style="width:${n / totalO * 100}%"></i>`).join('')}</div>
+          <div class="legend">${byStatus.map(([s, n]) => `<span><i class="c-${s}"></i>${STATUS[s]}<b>${n}</b></span>`).join('')}</div></div>
+        <div class="card"><h3>Top sellers</h3>${top.length ? `<div class="top5">${top.map(([n, q]) => `<div><div class="t"><span>${esc(n)}</span><b>${q}</b></div><div class="bar"><i style="width:${q / topMax * 100}%"></i></div></div>`).join('')}</div>` : '<p class="quote">Sales will show here once orders come in.</p>'}</div>
         <div class="card"><h3>Quick actions</h3><div class="row"><button class="btn gold sm" data-act="new-product">${I.plus} Add product</button><a class="btn ghost sm" href="#/reviews">Reviews</a><a class="btn ghost sm" href="#/messages">Messages</a></div></div>
       </div>
     </div>`;
+  countUp(v);
 };
 
 function orderRow(o) {
@@ -243,6 +285,12 @@ function drawOrders(v = $('#view')) {
     <div class="list">${list.map(orderRow).join('') || '<div class="empty"><b>Nothing here</b>No orders match.</div>'}</div>`;
   const inp = $('#oq'); inp.addEventListener('input', e => { f.ordersQ = e.target.value; const pos = e.target.selectionStart; drawOrders(); const n = $('#oq'); n.focus(); n.setSelectionRange(pos, pos); });
 }
+const STEPS = ['new', 'confirmed', 'in_progress', 'ready', 'delivered'];
+const stepper = s => {
+  if (s === 'cancelled') return '<span class="pill s-cancelled">Cancelled</span>';
+  const i = STEPS.indexOf(s);
+  return `<div class="steps">${STEPS.map((k, n) => `${n ? `<span class="bar2 ${n <= i ? 'done' : ''}"></span>` : ''}<span class="st ${n < i ? 'done' : n === i ? 'cur' : ''}"><i></i>${STATUS[k]}</span>`).join('')}</div>`;
+};
 function openOrder(id) {
   const o = ORDERS.find(x => x.id === id) || null;
   const load = o ? Promise.resolve(o) : SB.select('orders', `select=*&id=eq.${id}`).then(r => r[0]);
@@ -261,13 +309,14 @@ function openOrder(id) {
         ${o.notes ? `<dt>Notes</dt><dd>${esc(o.notes)}</dd>` : ''}
       </dl></div>
       <div><p class="eyebrow" style="margin-bottom:8px">Items</p><div class="lines">${(o.items || []).map(i => `<div class="ln"><span>${esc(i.name)}${i.note ? `<small>“${esc(i.note)}”</small>` : ''}</span><b>×${i.qty}</b></div>`).join('') || '<p class="quote">No items recorded.</p>'}</div></div>
-      <div><p class="eyebrow" style="margin-bottom:8px">Status</p><div class="seg" id="oSeg">${Object.keys(STATUS).map(s => `<button type="button" data-s="${s}" class="${s === status ? 'on' : ''}">${STATUS[s]}</button>`).join('')}</div></div>
+      <div id="oSteps">${stepper(status)}</div>
+      <div><p class="eyebrow" style="margin-bottom:8px">Update status</p><div class="seg" id="oSeg">${Object.keys(STATUS).map(s => `<button type="button" data-s="${s}" class="${s === status ? 'on' : ''}">${STATUS[s]}</button>`).join('')}</div></div>
       <label class="field">Total (GH₵)<input id="oTotal" type="number" inputmode="decimal" min="0" step="0.01" value="${o.total ?? ''}" placeholder="Agreed price"></label>
       <div class="sw"><div>Paid<small>Mark when payment is received</small></div><label class="tg"><input type="checkbox" id="oPaid" ${o.paid ? 'checked' : ''}><i></i></label></div>
       <label class="field">Private notes<textarea id="oNotes" placeholder="Only you can see this">${esc(o.admin_notes || '')}</textarea></label>
       <div class="row"><a class="btn wa sm grow" target="_blank" rel="noopener" href="https://wa.me/${waNumber(o.phone)}?text=${encodeURIComponent(`Hello ${o.customer_name}, this is TheNobles about your order ${o.ref}.`)}">${I.wa} WhatsApp</a><a class="btn ghost sm grow" href="tel:${esc(o.phone)}">${I.phone} Call</a></div>`;
     const el = sheet(`Order ${esc(o.ref)}`, body, `<button class="btn danger" data-del>Delete</button><button class="btn gold grow" data-save>Save changes</button>`);
-    el.querySelector('#oSeg').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if (!b) return; status = b.dataset.s; $$('#oSeg button', el).forEach(x => x.classList.toggle('on', x === b)); });
+    el.querySelector('#oSeg').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if (!b) return; status = b.dataset.s; $$('#oSeg button', el).forEach(x => x.classList.toggle('on', x === b)); $('#oSteps', el).innerHTML = stepper(status); });
     el.querySelector('[data-save]').addEventListener('click', ev => run(ev.currentTarget, async () => {
       const t = $('#oTotal', el).value;
       const [row] = await SB.update('orders', `id=eq.${o.id}`, { status, total: t === '' ? null : Number(t), paid: $('#oPaid', el).checked, admin_notes: $('#oNotes', el).value.trim() || null });
@@ -294,9 +343,9 @@ function drawProducts(v = $('#view')) {
   v.innerHTML = `<div class="page-h"><div><h1>Products</h1><p>${PRODUCTS.filter(p => p.active).length} live · ${PRODUCTS.length} total</p></div><button class="btn gold sm" data-act="new-product">${I.plus} Add</button></div>
     <div class="toolbar"><div class="search" style="margin:0">${I.search}<input id="pq" type="search" placeholder="Search products" value="${esc(f.productsQ)}"></div>
       <label class="field"><select id="pcat"><option value="">All categories</option>${S.cats.map(c => `<option value="${esc(c.id)}" ${f.productsCat === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label></div>
-    <div class="pgrid" style="margin-top:12px">${list.map(p => `<button class="pc ${p.active ? '' : 'hid'}" data-product="${p.id}">
-      <img src="${esc(imgUrl(p.image))}" alt="" loading="lazy">${p.active ? '' : '<span class="pill s-hidden off">Hidden</span>'}${p.featured ? `<span class="star">${I.star}</span>` : ''}
-      <span class="pb"><b>${esc(p.name)}</b><small>${esc(cn(p.category_id))}</small><span class="pr" style="display:block">${p.price ? money(p.price) : '<span style="color:var(--dim);font-weight:600">No price</span>'}</span></span></button>`).join('') || '<div class="empty" style="grid-column:1/-1"><b>No products</b>Tap Add to create one.</div>'}</div>
+    <div class="pgrid" style="margin-top:12px">${list.map(p => `<button class="pc ${p.active ? '' : 'hid'}" data-product="${p.id}"><span class="ph">
+      <img src="${esc(imgUrl(p.image))}" alt="" loading="lazy">${p.active ? '' : '<span class="pill s-hidden off">Hidden</span>'}${p.featured ? `<span class="star">${I.star}</span>` : ''}<span class="price ${p.price ? '' : 'none'}">${p.price ? money(p.price) : 'No price'}</span></span>
+      <span class="pb"><b>${esc(p.name)}</b><small>${esc(cn(p.category_id))}</small></span></button>`).join('') || '<div class="empty" style="grid-column:1/-1"><b>No products</b>Tap Add to create one.</div>'}</div>
     <button class="fab" data-act="new-product" aria-label="Add product">${I.plus} Add product</button>`;
   $('#pq').addEventListener('input', e => { f.productsQ = e.target.value; const pos = e.target.selectionStart; drawProducts(); const n = $('#pq'); n.focus(); n.setSelectionRange(pos, pos); });
   $('#pcat').addEventListener('change', e => { f.productsCat = e.target.value; drawProducts(); });
