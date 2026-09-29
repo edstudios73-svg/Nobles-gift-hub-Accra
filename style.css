@@ -71,7 +71,7 @@ h1,h2,h3,h4{font-family:var(--f-head);line-height:1.15;font-weight:700;letter-sp
 .page-head h1{font-size:clamp(2rem,4.6vw,3.2rem);margin:8px 0 12px}
 
 /* categories row (home) */
-.cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:14px}
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:14px}
 .cat{display:flex;flex-direction:column;align-items:center;gap:8px;font-weight:600;font-size:.85rem;text-align:center}
 .cat img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:24px;background:var(--blush);transition:.25s}
 .cat:hover img{transform:translateY(-4px);box-shadow:var(--shadow)}
@@ -369,3 +369,22 @@ footer a:hover{color:var(--rose)}
 .pl-card th{white-space:normal}
 @media (max-width:640px){.pl-card{min-width:0}.pl-grid>*,.pl-grid div{min-width:0}.pl-card table{font-size:.86rem}}
 @media (max-width:640px){.pl-card th{font-size:.66rem;letter-spacing:.04em}.pl-card th:not(:first-child),.pl-card td:not(:first-child){padding-left:8px}}
+
+/* reviews + modal extras */
+.m-price{font-family:var(--f-head);font-size:1.3rem;font-weight:700;color:var(--rose)!important}
+.reviews{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.review{background:var(--card);border-radius:var(--r);padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px}
+.review p{color:var(--mute);font-size:.95rem;flex:1}
+.review b{font-size:.9rem}
+.stars{color:var(--gold);letter-spacing:2px;font-size:1rem}
+.stars i{font-style:normal;color:#e3d5d9}
+.rating{display:flex;align-items:center;gap:10px}
+.rating b{font-family:var(--f-head);font-size:1.5rem}
+.review-modal{grid-template-columns:1fr;width:min(480px,100%)}
+.stars-in{display:flex;flex-direction:row-reverse;justify-content:flex-end;gap:4px}
+.stars-in input{position:absolute;opacity:0}
+.stars-in label{font-size:1.9rem;line-height:1;color:#dccfd3;cursor:pointer;transition:.15s}
+.stars-in input:checked~label,.stars-in label:hover,.stars-in label:hover~label{color:var(--gold)}
+.stars-in input:focus-visible+label{outline:2px solid var(--rose);border-radius:4px}
+@media (max-width:900px){.reviews{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){.reviews{grid-template-columns:1fr}.review-modal{border-radius:28px 28px 0 0}}

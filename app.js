@@ -4,7 +4,7 @@ const WHATSAPP = '233551586167';
 const PHONE = '0551586167';
 const EMAIL = 'yussifrashida918@gmail.com';
 
-const CATEGORIES = [
+let CATEGORIES = [
   { id: 'bouquets',     name: 'Bouquets',        img: 'p16', list: 'roses',    blurb: 'Rose and mixed flower bouquets for every occasion.' },
   { id: 'money',        name: 'Money Bouquets',  img: 'm52', list: 'money',    blurb: 'Cash bouquets styled with flowers and ribbon.' },
   { id: 'balloons',     name: 'Balloon Hampers', img: 'p23', list: 'balloons', blurb: 'Named air balloon hampers with snacks, drinks or flowers.' },
@@ -16,8 +16,8 @@ const CATEGORIES = [
   { id: 'footwear',     name: 'Footwear',        img: 'p29', blurb: 'Sandals and slides, boxed and ready to gift.' },
 ];
 
-const P = (img, cat, name, desc, price = null) => ({ id: img, img, cat, name, desc, price });
-const PRODUCTS = [
+const P = (img, cat, name, desc, price = null) => ({ id: img, image: `img/${img}.jpg`, cat, name, desc, price });
+let PRODUCTS = [
   P('p16','bouquets','Signature Red Rose Bouquet','A full bouquet of red roses with baby’s breath in soft pink wrapping.'),
   P('p03','bouquets','Graduation Rose Bouquet','Red roses with a pearl finished year, a grad cap and a scroll for the graduate.'),
   P('p23','balloons','Big Birthday Balloon Hamper','A named balloon on a box filled with snacks and treats. Add a cake if you like.'),
@@ -105,7 +105,25 @@ const PRODUCTS = [
   P('m63','boxes','Bow Tied Chocolate Gift Box','Bow tied chocolates in a long purple gift box.'),
   P('m64','boxes','Brown Polo and Wallet Box','A patterned polo and a black wallet with a thank you card.'),
 ];
-const FEATURED = ['p16', 'm52', 'p23', 'm48', 'm21', 'p02', 'p09', 'p12'];
+let FEATURED = ['p16', 'm52', 'p23', 'm48', 'm21', 'p02', 'p09', 'p12'];
+CATEGORIES = CATEGORIES.map(c => ({ ...c, image: `img/${c.img}.jpg` }));
+
+/* Live catalogue from Supabase (falls back to the list above if it is unreachable) */
+async function loadRemote() {
+  if (!window.SB || !window.NOBLES_CONFIG || !NOBLES_CONFIG.url) return;
+  try {
+    const t = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
+    const [cats, prods] = await Promise.race([
+      Promise.all([SB.select('categories', 'select=*&order=sort.asc'), SB.select('products', 'select=*&active=eq.true&order=sort.asc,created_at.desc')]),
+      t,
+    ]);
+    if (!cats.length || !prods.length) return;
+    CATEGORIES = cats.map(c => ({ id: c.id, name: c.name, blurb: c.blurb, image: c.image, list: c.price_list }));
+    PRODUCTS = prods.map(p => ({ id: p.slug, image: p.image, cat: p.category_id, name: p.name, desc: p.description, price: p.price ? Number(p.price) : null, featured: p.featured }));
+    const f = PRODUCTS.filter(p => p.featured).map(p => p.id);
+    FEATURED = (f.length ? f : PRODUCTS.map(p => p.id)).slice(0, 8);
+  } catch (e) { /* keep static catalogue */ }
+}
 
 const PAGES = [
   ['home', 'index.html', 'Home'],
@@ -184,6 +202,7 @@ const overlays = `
       <span class="tag" id="mCat"></span>
       <h3 id="mTitle"></h3>
       <p id="mDesc"></p>
+      <p class="m-price" id="mPrice" hidden></p>
       <label class="field">Name or message on the gift <small>(optional)</small>
         <input id="mNote" maxlength="60" placeholder="e.g. Happy Birthday Ama">
       </label>
@@ -194,6 +213,24 @@ const overlays = `
       <a class="pl" id="mList" href="prices.html" hidden>View the price list</a>
       <p class="fine">Rashida confirms the final price on WhatsApp.</p>
     </div>
+  </div>
+</div>
+<div class="overlay" id="reviewWrap" hidden>
+  <div class="modal review-modal" role="dialog" aria-modal="true" aria-labelledby="rTitle">
+    <button class="x" data-close aria-label="Close">×</button>
+    <form class="m-body" id="reviewForm">
+      <h3 id="rTitle">Write a review</h3>
+      <p>Tell us about your gift. Reviews appear on the site after Rashida approves them.</p>
+      <label class="field">Your name<input name="name" required maxlength="80" placeholder="Your name"></label>
+      <div class="field">Rating
+        <div class="stars-in" role="radiogroup" aria-label="Rating">
+          ${[5,4,3,2,1].map(n => `<input type="radio" name="rating" id="rt${n}" value="${n}"${n === 5 ? ' checked' : ''}><label for="rt${n}" title="${n} stars">★</label>`).join('')}
+        </div>
+      </div>
+      <label class="field">Your review<textarea name="comment" rows="4" required maxlength="800" placeholder="What did you order and how was it?"></textarea></label>
+      <p class="err" id="rErr" role="alert" hidden></p>
+      <button class="btn primary" type="submit">Submit review</button>
+    </form>
   </div>
 </div>
 <div class="overlay" id="cartWrap" hidden>
@@ -236,6 +273,9 @@ const overlays = `
 document.body.insertAdjacentHTML('afterbegin', header);
 document.body.insertAdjacentHTML('beforeend', footer + dock + overlays);
 
+(async () => {
+await loadRemote();
+
 /* ---------- state ---------- */
 let state = { cat: 'all', q: '' };
 let cart = [];
@@ -246,7 +286,7 @@ const save = () => { try { localStorage.setItem('nobles-cart', JSON.stringify(ca
 const priceLabel = p => p.price ? money(p.price) : (CATEGORIES.find(c => c.id === p.cat) || {}).list ? 'See price list' : 'Price on request';
 const card = p => `
   <article class="p" data-id="${p.id}" tabindex="0" role="button" aria-label="${esc(p.name)}">
-    <img src="img/${p.img}.jpg" alt="${esc(p.name)}" loading="lazy">
+    <img src="${p.image}" alt="${esc(p.name)}" loading="lazy">
     <span class="tag">${catName(p.cat)}</span>
     <div class="p-info"><h3>${esc(p.name)}</h3><span>${priceLabel(p)}</span></div>
     <button class="add" data-quick="${p.id}" aria-label="Add ${esc(p.name)} to cart">+</button>
@@ -255,7 +295,7 @@ const card = p => `
 /* home: categories row + featured */
 const catsEl = $('#cats');
 if (catsEl) catsEl.innerHTML = CATEGORIES.map(c =>
-  `<a class="cat" href="shop.html?cat=${c.id}"><img src="img/${c.img}.jpg" alt="" loading="lazy"><span>${c.name}</span></a>`).join('');
+  `<a class="cat" href="shop.html?cat=${c.id}"><img src="${c.image}" alt="" loading="lazy"><span>${c.name}</span></a>`).join('');
 const featEl = $('#featured');
 if (featEl) featEl.innerHTML = FEATURED.map(id => card(PRODUCTS.find(p => p.id === id))).join('');
 
@@ -264,7 +304,7 @@ const catPage = $('#catPage');
 if (catPage) catPage.innerHTML = CATEGORIES.map(c => {
   const n = PRODUCTS.filter(p => p.cat === c.id).length;
   return `<a class="cat-card" href="shop.html?cat=${c.id}">
-    <img src="img/${c.img}.jpg" alt="" loading="lazy">
+    <img src="${c.image}" alt="" loading="lazy">
     <div><h3>${c.name}</h3><p>${c.blurb}</p><span>${n} items</span></div>
   </a>`;
 }).join('');
@@ -318,9 +358,10 @@ let current = null, mq = 1;
 function openModal(id) {
   const p = PRODUCTS.find(x => x.id === id); if (!p) return;
   current = p; mq = 1;
-  $('#mImg').src = `img/${p.img}.jpg`; $('#mImg').alt = p.name;
+  $('#mImg').src = p.image; $('#mImg').alt = p.name;
   $('#mCat').textContent = catName(p.cat); $('#mTitle').textContent = p.name;
   $('#mDesc').textContent = p.desc; $('#mNote').value = ''; $('#mQty').textContent = 1;
+  $('#mPrice').hidden = !p.price; $('#mPrice').textContent = p.price ? money(p.price) : '';
   const cat = CATEGORIES.find(c => c.id === p.cat);
   $('#mList').hidden = !(cat && cat.list); if (cat && cat.list) $('#mList').href = 'prices.html#' + cat.list;
   show('#modalWrap');
@@ -358,7 +399,7 @@ function renderCart() {
   $('#drawerTitle').textContent = `Your order (${n})`;
   $('#cartItems').innerHTML = cart.length ? cart.map((l, i) => {
     const p = PRODUCTS.find(x => x.id === l.id);
-    return `<div class="line"><img src="img/${p.img}.jpg" alt="">
+    return `<div class="line"><img src="${p.image}" alt="">
       <div class="info"><div><h5>${esc(p.name)}</h5><small>${l.note ? `“${esc(l.note)}”` : catName(p.cat)}</small></div>
       <div class="qty"><button data-dec="${i}" aria-label="Less">−</button><span>${l.qty}</span><button data-inc="${i}" aria-label="More">+</button></div></div>
       <button class="rm" data-rm="${i}" aria-label="Remove">×</button></div>`;
@@ -379,7 +420,12 @@ $('#giftToggle').onchange = e => $('#giftBox').hidden = !e.target.checked;
 $$('input[name=mode]').forEach(r => r.onchange = () => $('#addrRow').hidden = $('input[name=mode]:checked').value !== 'Delivery');
 $('input[name=date]').min = new Date().toISOString().slice(0, 10);
 
-$('#checkout').addEventListener('submit', e => {
+function openWhatsApp(text, w) {
+  const url = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`;
+  if (w && !w.closed) w.location.href = url; else location.href = url;
+}
+
+$('#checkout').addEventListener('submit', async e => {
   e.preventDefault();
   const f = new FormData(e.target), err = $('#err');
   const name = (f.get('name') || '').trim(), phone = (f.get('phone') || '').trim();
@@ -391,34 +437,80 @@ $('#checkout').addEventListener('submit', e => {
   if (delivery && !(f.get('address') || '').trim()) return fail('Please add a delivery address.');
   err.hidden = true;
 
+  const w = window.open('about:blank', '_blank');
+  const btn = e.submitter; if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
+  const gift = $('#giftToggle').checked;
+  const items = cart.map(l => { const p = PRODUCTS.find(x => x.id === l.id); return { slug: p.id, name: p.name, qty: l.qty, note: l.note || '' }; });
+  let ref = '';
+  try {
+    ref = await SB.rpc('submit_order', { payload: {
+      name, phone, fulfilment: delivery ? 'Delivery' : 'Pickup', address: (f.get('address') || '').trim(),
+      event_date: f.get('date') || '', event_time: f.get('time') || '', is_gift: gift,
+      recipient_name: gift ? (f.get('rname') || '').trim() : '', card_message: gift ? (f.get('msg') || '').trim() : '',
+      notes: (f.get('notes') || '').trim(), items,
+    } });
+  } catch (x) { /* still send the WhatsApp message */ }
+
   const lines = cart.map((l, i) => {
     const p = PRODUCTS.find(x => x.id === l.id);
     return `${i + 1}. ${p.name} x${l.qty}${l.note ? ` (${l.note})` : ''}`;
   });
   const parts = [
-    'Hello TheNobles, I would like to order:', '', ...lines, '',
+    `Hello TheNobles, I would like to order${ref ? ' (' + ref + ')' : ''}:`, '', ...lines, '',
     `Name: ${name}`, `Phone: ${phone}`,
-    `${delivery ? 'Delivery to: ' + f.get('address').trim() : 'Pickup at NIMA / UPSA'}`,
+    delivery ? 'Delivery to: ' + f.get('address').trim() : 'Pickup at NIMA / UPSA',
   ];
   if (f.get('date')) parts.push(`Date: ${f.get('date')}${f.get('time') ? ' at ' + f.get('time') : ''}`);
-  if ($('#giftToggle').checked) {
+  if (gift) {
     if (f.get('rname')) parts.push(`Gift for: ${f.get('rname').trim()}`);
     if (f.get('msg')) parts.push(`Card message: ${f.get('msg').trim()}`);
   }
   if ((f.get('notes') || '').trim()) parts.push(`Notes: ${f.get('notes').trim()}`);
-  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(parts.join('\n'))}`, '_blank', 'noopener');
+  openWhatsApp(parts.join('\n'), w);
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Send order on WhatsApp'; }
+  cart = []; save(); renderCart(); e.target.reset(); $('#giftBox').hidden = true; $('#addrRow').hidden = true;
+  closeAll(); toast(ref ? `Order ${ref} sent` : 'Order sent');
 });
 
 /* contact page form */
 const cf = $('#contactForm');
-if (cf) cf.addEventListener('submit', e => {
+if (cf) cf.addEventListener('submit', async e => {
   e.preventDefault();
   const f = new FormData(cf);
-  const msg = `Hello TheNobles, my name is ${(f.get('name') || '').trim()}.\n${(f.get('message') || '').trim()}`;
-  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+  const nm = (f.get('name') || '').trim(), ph = (f.get('phone') || '').trim(), msg = (f.get('message') || '').trim();
+  const w = window.open('about:blank', '_blank');
+  try { await SB.rpc('submit_message', { p_name: nm, p_phone: ph, p_message: msg }); } catch (x) {}
+  openWhatsApp(`Hello TheNobles, my name is ${nm}.\n${msg}`, w);
+  cf.reset(); toast('Message sent');
+});
+
+/* ---------- reviews ---------- */
+const stars = n => '★'.repeat(n) + '<i>' + '★'.repeat(5 - n) + '</i>';
+const reviewList = $('#reviewList');
+if (reviewList) {
+  (async () => {
+    let rows = [];
+    try { rows = await SB.select('reviews', 'select=name,rating,comment&status=eq.approved&order=created_at.desc&limit=6'); } catch (x) {}
+    if (!rows.length) { $('#reviews').hidden = false; reviewList.innerHTML = '<p class="empty">No reviews yet. Be the first to share your experience.</p>'; return; }
+    const avg = rows.reduce((s, r) => s + r.rating, 0) / rows.length;
+    $('#reviewSummary').innerHTML = `<b>${avg.toFixed(1)}</b><span class="stars">${stars(Math.round(avg))}</span>`;
+    reviewList.innerHTML = rows.map(r => `<article class="review"><span class="stars">${stars(r.rating)}</span><p>${esc(r.comment)}</p><b>${esc(r.name)}</b></article>`).join('');
+  })();
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-review]')) show('#reviewWrap'); });
+$('#reviewForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = new FormData(e.target), err = $('#rErr');
+  try {
+    await SB.rpc('submit_review', { p_name: (f.get('name') || '').trim(), p_rating: Number(f.get('rating')), p_comment: (f.get('comment') || '').trim() });
+    e.target.reset(); closeAll(); toast('Thank you. Your review is awaiting approval.');
+  } catch (x) { err.textContent = 'Could not send your review. Please try again.'; err.hidden = false; }
 });
 
 /* ---------- misc ---------- */
 let tt; function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 1600); }
 (() => { const h = new Date().getHours(); $('#greet').textContent = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })();
 renderCart();
+})();
