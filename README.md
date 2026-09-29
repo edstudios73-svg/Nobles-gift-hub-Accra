@@ -8,3 +8,5 @@ Static site (no build step). Open `index.html` or host on Netlify / Vercel / Git
 - Orders are sent as a WhatsApp message to 0551586167 (`WHATSAPP` constant in `app.js`).
 - Photos are in `img/`.
 - Pages: `index.html` (home), `shop.html`, `categories.html`, `how-it-works.html`, `contact.html`. The header, footer, cart and checkout are shared and built in `app.js`.
+- Price list lives in `prices.html` (from the price flyers). Product cards in categories with a price list show "See price list". Set `price` on a product to show an exact price instead.
+- Legal pages: `privacy.html` and `terms.html` (template text, review before relying on it).
