@@ -155,15 +155,29 @@ function startShell() {
     <nav class="tabs" aria-label="Sections">${tabs}</nav></div>`;
   loadCats();
   refreshBadges();
-  clearInterval(S.poll); S.poll = setInterval(refreshBadges, 60000);
+  clearInterval(S.poll); S.poll = setInterval(refreshBadges, 20000);
   window.removeEventListener('hashchange', route); window.addEventListener('hashchange', route);
   if (!location.hash) location.hash = '#/dashboard'; else route();
 }
 async function loadCats() { try { S.cats = await SB.select('categories', 'select=*&order=sort.asc'); } catch (e) {} }
+function chime() {
+  try {
+    const A = window.AudioContext || window.webkitAudioContext; if (!A) return;
+    const c = new A(), g = c.createGain(); g.connect(c.destination); g.gain.setValueAtTime(.0001, c.currentTime);
+    [[880, 0], [1320, .16]].forEach(([f, t]) => { const o = c.createOscillator(); o.frequency.value = f; o.type = 'sine'; o.connect(g); o.start(c.currentTime + t); o.stop(c.currentTime + t + .18); });
+    g.gain.exponentialRampToValueAtTime(.18, c.currentTime + .02); g.gain.exponentialRampToValueAtTime(.0001, c.currentTime + .5);
+  } catch (e) {}
+}
 async function refreshBadges() {
   try {
+    const prev = S.badges.orders, first = !S.polled;
     const [o, r, m] = await Promise.all([SB.count('orders', 'status=eq.new'), SB.count('reviews', 'status=eq.pending'), SB.count('messages', 'read=eq.false')]);
     S.badges = { orders: o, reviews: r, messages: m };
+    S.polled = true;
+    if (!first && o > prev) {
+      toast(`New order received (${o - prev})`); chime(); try { navigator.vibrate && navigator.vibrate([120, 60, 120]); } catch (e) {}
+      if (!$('#veil') && ['dashboard', 'orders'].includes(S.cur)) route();
+    }
     $$('[data-badge]').forEach(b => { const n = S.badges[b.dataset.badge]; b.textContent = n > 99 ? '99+' : n; b.hidden = !n; });
     document.title = (o + r + m ? `(${o + r + m}) ` : '') + 'TheNobles Admin';
   } catch (e) {}
@@ -183,7 +197,7 @@ function countUp(root) {
 }
 async function route() {
   const key = (location.hash.replace('#/', '') || 'dashboard').split('?')[0];
-  const k = VIEWS[key] ? key : 'dashboard';
+  const k = VIEWS[key] ? key : 'dashboard'; S.cur = k;
   const nav = NAV.find(n => n[0] === k);
   $('#ttl').textContent = nav ? nav[1] === 'Home' ? 'Home' : nav[1] : 'Home';
   $$('[data-k]').forEach(a => a.classList.toggle('on', a.dataset.k === k || (a.dataset.k === 'more' && ['messages', 'categories', 'settings'].includes(k))));
@@ -285,6 +299,19 @@ function drawOrders(v = $('#view')) {
     <div class="list">${list.map(orderRow).join('') || '<div class="empty"><b>Nothing here</b>No orders match.</div>'}</div>`;
   const inp = $('#oq'); inp.addEventListener('input', e => { f.ordersQ = e.target.value; const pos = e.target.selectionStart; drawOrders(); const n = $('#oq'); n.focus(); n.setSelectionRange(pos, pos); });
 }
+function availabilityMessage(o, items, total) {
+  const yes = items.filter(i => i.available !== false), no = items.filter(i => i.available === false);
+  const line = i => `- ${i.qty} x ${i.name}${i.note ? ` (${i.note})` : ''}`;
+  let m = `Hello ${o.customer_name}, this is TheNobles about your order ${o.ref}.\n\n`;
+  if (!no.length) m += `Good news, everything is available:\n${yes.map(line).join('\n')}\n`;
+  else if (!yes.length) m += `Sorry, we cannot supply these items right now:\n${no.map(line).join('\n')}\n\nWe would be happy to suggest something similar. Tell us your budget and we will send options.`;
+  else m += `Available:\n${yes.map(line).join('\n')}\n\nNot available:\n${no.map(line).join('\n')}\n\nWe can suggest a replacement for the unavailable item if you like.\n`;
+  if (yes.length) {
+    if (total) m += `\nTotal: GH₵ ${total.toLocaleString('en-GH')}`;
+    m += `\n\nReply to confirm and we will arrange payment and ${o.fulfilment === 'Delivery' ? 'delivery' : 'pickup'}.`;
+  }
+  return m;
+}
 const STEPS = ['new', 'confirmed', 'in_progress', 'ready', 'delivered'];
 const stepper = s => {
   if (s === 'cancelled') return '<span class="pill s-cancelled">Cancelled</span>';
@@ -297,6 +324,7 @@ function openOrder(id) {
   load.then(o => {
     if (!o) return toast('Order not found', true);
     let status = o.status;
+    const items = JSON.parse(JSON.stringify(o.items || []));
     const body = `
       <div class="row" style="align-items:center"><span class="pill s-${o.status}" id="oPill">${STATUS[o.status]}</span><small style="color:var(--mute)">${esc(o.ref)} · ${fullDate(o.created_at)}</small></div>
       <div class="card" style="padding:14px"><dl class="kv">
@@ -308,18 +336,40 @@ function openOrder(id) {
         ${o.card_message ? `<dt>Card</dt><dd>${esc(o.card_message)}</dd>` : ''}
         ${o.notes ? `<dt>Notes</dt><dd>${esc(o.notes)}</dd>` : ''}
       </dl></div>
-      <div><p class="eyebrow" style="margin-bottom:8px">Items</p><div class="lines">${(o.items || []).map(i => `<div class="ln"><span>${esc(i.name)}${i.note ? `<small>“${esc(i.note)}”</small>` : ''}</span><b>×${i.qty}</b></div>`).join('') || '<p class="quote">No items recorded.</p>'}</div></div>
+      <div><p class="eyebrow" style="margin-bottom:8px">Items <span style="color:var(--dim);letter-spacing:0;text-transform:none;font-weight:600">· tap to mark availability</span></p><div class="lines" id="oItems">${items.map((i, n) => `<div class="ln" data-i="${n}"><span>${esc(i.name)}<b class="qtyb"> ×${i.qty}</b>${i.note ? `<small>“${esc(i.note)}”</small>` : ''}</span><span class="avail"><button type="button" data-av="1" class="${i.available !== false ? 'on' : ''}">Available</button><button type="button" data-av="0" class="${i.available === false ? 'on no' : ''}">Not available</button></span></div>`).join('') || '<p class="quote">No items recorded.</p>'}</div></div>
       <div id="oSteps">${stepper(status)}</div>
       <div><p class="eyebrow" style="margin-bottom:8px">Update status</p><div class="seg" id="oSeg">${Object.keys(STATUS).map(s => `<button type="button" data-s="${s}" class="${s === status ? 'on' : ''}">${STATUS[s]}</button>`).join('')}</div></div>
       <label class="field">Total (GH₵)<input id="oTotal" type="number" inputmode="decimal" min="0" step="0.01" value="${o.total ?? ''}" placeholder="Agreed price"></label>
       <div class="sw"><div>Paid<small>Mark when payment is received</small></div><label class="tg"><input type="checkbox" id="oPaid" ${o.paid ? 'checked' : ''}><i></i></label></div>
       <label class="field">Private notes<textarea id="oNotes" placeholder="Only you can see this">${esc(o.admin_notes || '')}</textarea></label>
-      <div class="row"><a class="btn wa sm grow" target="_blank" rel="noopener" href="https://wa.me/${waNumber(o.phone)}?text=${encodeURIComponent(`Hello ${o.customer_name}, this is TheNobles about your order ${o.ref}.`)}">${I.wa} WhatsApp</a><a class="btn ghost sm grow" href="tel:${esc(o.phone)}">${I.phone} Call</a></div>`;
+      <button type="button" class="btn wa wide" data-reply>${I.wa} Reply to customer on WhatsApp</button>
+      <p class="quote" style="margin:-6px 0 0;font-size:.78rem">Sends the availability of each item above and the total. A new order is marked Confirmed, or Cancelled if nothing is available.</p>
+      <div class="row"><a class="btn wa sm grow" target="_blank" rel="noopener" href="https://wa.me/${waNumber(o.phone)}?text=${encodeURIComponent(`Hello ${o.customer_name}, this is TheNobles about your order ${o.ref}.`)}">${I.wa} Chat only</a><a class="btn ghost sm grow" href="tel:${esc(o.phone)}">${I.phone} Call</a></div>`;
     const el = sheet(`Order ${esc(o.ref)}`, body, `<button class="btn danger" data-del>Delete</button><button class="btn gold grow" data-save>Save changes</button>`);
+    el.querySelector('#oItems').addEventListener('click', e => {
+      const b = e.target.closest('[data-av]'); if (!b) return;
+      const row = b.closest('[data-i]'), n = Number(row.dataset.i), yes = b.dataset.av === '1';
+      items[n].available = yes;
+      $$('[data-av]', row).forEach(x => { x.classList.toggle('on', (x.dataset.av === '1') === yes); x.classList.toggle('no', x.dataset.av === '0' && !yes); });
+    });
+    el.querySelector('[data-reply]').addEventListener('click', async ev => {
+      const btn = ev.currentTarget, w = window.open('about:blank', '_blank');
+      const totalVal = $('#oTotal', el).value, yesN = items.filter(i => i.available !== false).length;
+      let next = status;
+      if (status === 'new') next = yesN === 0 && items.length ? 'cancelled' : 'confirmed';
+      const msg = availabilityMessage(o, items, totalVal === '' ? null : Number(totalVal));
+      const url = `https://wa.me/${waNumber(o.phone)}?text=${encodeURIComponent(msg)}`;
+      const ok = await run(btn, async () => {
+        const [row] = await SB.update('orders', `id=eq.${o.id}`, { items, status: next, total: totalVal === '' ? null : Number(totalVal) });
+        Object.assign(ORDERS.find(x => x.id === o.id) || {}, row);
+      });
+      if (w && !w.closed) w.location.href = url; else location.href = url;
+      if (ok !== null) { closeSheet(); refreshBadges(); route(); toast(next !== status ? `Reply opened. Order marked ${STATUS[next]}.` : 'Reply opened in WhatsApp'); }
+    });
     el.querySelector('#oSeg').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if (!b) return; status = b.dataset.s; $$('#oSeg button', el).forEach(x => x.classList.toggle('on', x === b)); $('#oSteps', el).innerHTML = stepper(status); });
     el.querySelector('[data-save]').addEventListener('click', ev => run(ev.currentTarget, async () => {
       const t = $('#oTotal', el).value;
-      const [row] = await SB.update('orders', `id=eq.${o.id}`, { status, total: t === '' ? null : Number(t), paid: $('#oPaid', el).checked, admin_notes: $('#oNotes', el).value.trim() || null });
+      const [row] = await SB.update('orders', `id=eq.${o.id}`, { items, status, total: t === '' ? null : Number(t), paid: $('#oPaid', el).checked, admin_notes: $('#oNotes', el).value.trim() || null });
       Object.assign(ORDERS.find(x => x.id === o.id) || {}, row);
       closeSheet(); refreshBadges(); route();
     }, 'Order updated'));

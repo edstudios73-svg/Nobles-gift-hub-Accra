@@ -327,3 +327,12 @@ svg{width:22px;height:22px;flex:none}
 .att a{gap:10px;padding:11px 12px}
 .att a>svg:last-child{width:16px;height:16px;color:var(--dim)}
 .att b{white-space:nowrap}
+
+/* availability */
+.ln{align-items:center;flex-wrap:wrap}
+.ln>span:first-child{flex:1;min-width:150px}
+.ln .qtyb{color:var(--gold2);margin-left:4px}
+.avail{display:flex;gap:6px}
+.avail button{padding:7px 11px;border-radius:99px;border:1px solid var(--line2);background:rgba(8,5,6,.5);color:var(--dim);font-weight:800;font-size:.66rem;transition:.2s}
+.avail button.on{background:rgba(95,196,138,.16);border-color:rgba(95,196,138,.55);color:var(--ok)}
+.avail button.on.no{background:rgba(239,108,108,.14);border-color:rgba(239,108,108,.5);color:var(--bad)}
