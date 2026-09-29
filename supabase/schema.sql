@@ -102,12 +102,12 @@ create policy "admins read own row" on public.admins for select to authenticated
 create policy "public reads categories" on public.categories for select to anon, authenticated using (true);
 create policy "admin manages categories" on public.categories for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
-create policy "public reads active products" on public.products for select to anon, authenticated using (active or public.is_admin());
+create policy "public reads active products" on public.products for select to anon, authenticated using (active);
 create policy "admin manages products" on public.products for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 create policy "admin manages orders" on public.orders for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
-create policy "public reads approved reviews" on public.reviews for select to anon, authenticated using (status = 'approved' or public.is_admin());
+create policy "public reads approved reviews" on public.reviews for select to anon, authenticated using (status = 'approved');
 create policy "admin manages reviews" on public.reviews for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 create policy "admin manages messages" on public.messages for all to authenticated using (public.is_admin()) with check (public.is_admin());

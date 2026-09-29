@@ -14,4 +14,4 @@ Static site (no build step). Open `index.html` or host on Netlify / Vercel / Git
 ## Backend (Supabase) and admin
 - `supabase/schema.sql` creates tables, security policies, order/review/message functions and the `product-images` storage bucket. `supabase/seed.sql` loads the existing categories and products.
 - `config.js` holds the Supabase URL and public (publishable) key. `sb.js` is a tiny client used by the website and the admin.
-- The admin lives in `admin/` and opens at `/admin`. Until `config.js` has a Supabase URL it runs in demo mode (sample data kept in the browser, see `demo.js`). With a Supabase URL it uses the real database, and only users listed in the `admins` table can read or change data.
+- The admin lives in `admin/` and opens at `/admin`. `config.js` points at the Supabase project (nobles-gift-hub-accra); only users listed in the `admins` table can read or change data. If `config.js` has no URL the admin falls back to demo mode (sample data in the browser, see `demo.js`).
