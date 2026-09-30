@@ -93,12 +93,12 @@ async function run(btn, fn, okMsg) {
 }
 
 /* ---------- state ---------- */
-const S = { demo: false, user: null, badges: { orders: 0, reviews: 0, messages: 0 }, cats: [], filters: { orders: 'all', reviews: 'pending', ordersQ: '', productsQ: '', productsCat: '' } };
+const S = { user: null, badges: { orders: 0, reviews: 0, messages: 0 }, cats: [], filters: { orders: 'all', reviews: 'pending', ordersQ: '', productsQ: '', productsCat: '' } };
 const app = $('#app');
 
 /* ---------- boot + auth ---------- */
 async function boot() {
-  if (!window.NOBLES_CONFIG || !NOBLES_CONFIG.url) { SB.attach(window.NOBLES_DEMO); S.demo = true; }
+  if (!window.NOBLES_CONFIG || !NOBLES_CONFIG.url) { app.innerHTML = loginHtml('The backend is not connected.'); return; }
   const sess = await SB.restore();
   if (sess && await verifyAdmin()) return startShell();
   app.innerHTML = loginHtml();
@@ -114,7 +114,6 @@ function loginHtml(msg = '') {
     <p class="eyebrow">Admin</p>
     <h1 class="gold">TheNobles</h1>
     <p>gift &amp; surprise hub, sign in to manage your shop.</p>
-    ${S.demo ? `<div class="demo-note"><b>Demo mode</b><span>Sample data, saved only in this browser.</span><span>Email <code>${esc(NOBLES_DEMO.email)}</code></span><span>Password <code>${esc(NOBLES_DEMO.defaultPassword)}</code></span></div>` : ''}
     <form id="loginForm" autocomplete="on">
       <label class="field">Email<input name="email" type="email" autocomplete="username" required placeholder="you@example.com"></label>
       <label class="field">Password<input name="password" type="password" autocomplete="current-password" required placeholder="Your password"></label>
@@ -147,7 +146,7 @@ function startShell() {
     const badge = ['orders', 'reviews'].includes(k) ? `<i class="dotb" data-badge="${k}" hidden></i>` : k === 'more' ? '<i class="dotb" data-badge="messages" hidden></i>' : '';
     return k === 'more' ? `<button data-act="more" data-k="more">${n[1]}<span>${n[0]}</span>${badge}</button>` : `<a href="#/${k}" data-k="${k}">${n[1]}<span>${n[0]}</span>${badge}</a>`;
   }).join('');
-  app.innerHTML = `${S.demo ? '<div class="demobar"><span><b>DEMO</b> sample data saved only in this browser</span><button data-act="demo-reset">Reset</button></div>' : ''}<div class="shell">
+  app.innerHTML = `<div class="shell">
     <aside class="side"><div class="brand"><img src="/img/logo.jpg" alt=""><div><b>TheNobles</b><small>Admin</small></div></div>${nav}
       <span class="sp"></span><div class="who"><span class="av">R</span><div><b>Rashida Yussif</b><small>${esc(S.user && S.user.email)}</small></div></div><a href="${SITE}/" target="_blank" rel="noopener">${I.ext}<span>View website</span></a><button data-act="logout">${I.out}<span>Sign out</span></button></aside>
     <div>
@@ -594,7 +593,6 @@ VIEWS.settings = async v => {
         <p class="err" id="pwErr" hidden></p><button class="btn gold" type="submit">Change password</button></form></div>
       <div style="display:grid;gap:16px;align-content:start"><div class="card"><h3>Your website</h3><div class="row"><a class="btn ghost sm" href="${SITE}/" target="_blank" rel="noopener">${I.ext} Open website</a><a class="btn ghost sm" href="${SITE}/prices.html" target="_blank" rel="noopener">Price list</a></div>
         <p class="quote" style="margin-top:12px">Products, categories, reviews and orders here update the website straight away.</p></div>
-        ${S.demo ? `<div class="card"><h3>Demo mode</h3><p class="quote">Everything here is sample data kept in this browser. Orders, reviews and messages sent from the website in this same browser show up here.</p><div class="row"><button class="btn ghost sm" data-act="demo-reset">Reset demo data</button><button class="btn ghost sm" data-act="demo-site-off">Stop showing demo data on the website</button></div></div>` : ''}
         <div class="card"><h3>Session</h3><button class="btn danger" data-act="logout">${I.out} Sign out</button></div></div></div>`;
   $('#pwForm').addEventListener('submit', async e => {
     e.preventDefault(); const f = new FormData(e.target), err = $('#pwErr');
@@ -634,8 +632,6 @@ document.addEventListener('click', e => {
       case 'new-review': return openReview();
       case 'new-cat': return openCategory(null);
       case 'more': return openMore();
-      case 'demo-reset': return confirmBox('Reset demo data?', 'All demo products, orders, reviews and messages go back to the starting samples.', 'Reset').then(ok => { if (ok) { NOBLES_DEMO.reset(); toast('Demo data reset'); route(); } });
-      case 'demo-site-off': NOBLES_DEMO.stopWebsiteDemo(); return toast('The website in this browser now shows the normal catalogue');
     }
   }
 });

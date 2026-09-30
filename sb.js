@@ -82,6 +82,5 @@ window.SB = (() => {
       return `${cfg.url}/storage/v1/object/public/${bucket}/${path}`;
     },
   };
-  api.attach = impl => Object.defineProperties(api, Object.getOwnPropertyDescriptors(impl));
   return api;
 })();

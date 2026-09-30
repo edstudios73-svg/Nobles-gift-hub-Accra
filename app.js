@@ -109,11 +109,8 @@ let FEATURED = ['p16', 'm52', 'p23', 'm48', 'm21', 'p02', 'p09', 'p12'];
 CATEGORIES = CATEGORIES.map(c => ({ ...c, image: `img/${c.img}.jpg` }));
 
 /* Live catalogue from Supabase (falls back to the list above if it is unreachable) */
-const DEMO_ON = !(window.NOBLES_CONFIG && NOBLES_CONFIG.url) && localStorage.getItem('nobles-demo') === '1';
 let HAS_BACKEND = !!(window.NOBLES_CONFIG && NOBLES_CONFIG.url);
-const loadScript = src => new Promise(res => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = res; document.head.appendChild(s); });
 async function loadRemote() {
-  if (DEMO_ON) { await loadScript('demo.js'); if (window.NOBLES_DEMO) { SB.attach(window.NOBLES_DEMO); HAS_BACKEND = true; } }
   if (!HAS_BACKEND) return;
   try {
     const t = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
@@ -292,10 +289,6 @@ const overlays = `
 
 document.body.insertAdjacentHTML('afterbegin', header);
 document.body.insertAdjacentHTML('beforeend', footer + dock + overlays);
-if (DEMO_ON) {
-  document.body.insertAdjacentHTML('afterbegin', '<div class="demobar"><span>Demo data is on in this browser</span><button id="demoOff">Turn off</button></div>');
-  $('#demoOff').addEventListener('click', () => { localStorage.removeItem('nobles-demo'); location.reload(); });
-}
 
 (async () => {
 await loadRemote();
