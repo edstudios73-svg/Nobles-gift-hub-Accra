@@ -11,14 +11,14 @@
   function seedDb() {
     const bySlug = s => { const p = SEED.products.find(x => x.slug === s); return { slug: s, name: p ? p.name : s }; };
     const item = (s, qty = 1, note = '') => ({ ...bySlug(s), qty, note });
-    const order = (n, ago, o) => ({ id: uid(), ref: 'TN-' + n, fulfilment: 'Pickup', address: null, event_date: null, event_time: null, is_gift: false, recipient_name: null, card_message: null, notes: null, total: null, paid: false, status: 'new', admin_notes: null, created_at: hoursAgo(ago), updated_at: hoursAgo(ago), ...o });
+    const order = (n, ago, o) => ({ id: uid(), ref: 'TN-' + n, fulfilment: 'Pickup', address: null, event_date: null, event_time: null, is_gift: false, recipient_name: null, card_message: null, notes: null, total: null, paid: false, status: 'new', admin_notes: null, customer_note: null, eta: null, created_at: hoursAgo(ago), updated_at: hoursAgo(ago), ...o });
     return {
       pw: DEFAULT_PW, seq: 1006,
       categories: SEED.categories,
       products: SEED.products.map((p, i) => ({ id: uid(), created_at: hoursAgo(500 - i), updated_at: hoursAgo(500 - i), ...p })),
       orders: [
         order(1005, 0.6, { customer_name: 'Ama Mensah (demo)', phone: '0244123456', fulfilment: 'Delivery', address: 'East Legon, near the mall', event_date: new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10), event_time: '14:00', is_gift: true, recipient_name: 'Kojo', card_message: 'Happy birthday, love you always!', notes: 'Red and gold theme please', items: [item('p16', 1, 'Kojo'), item('p23', 1, 'Happy Birthday Kojo')] }),
-        order(1004, 5, { customer_name: 'Efua Owusu (demo)', phone: '0501234567', items: [item('m52'), item('m48')], status: 'confirmed', total: 650, notes: 'Pickup at UPSA' }),
+        order(1004, 5, { customer_name: 'Efua Owusu (demo)', phone: '0501234567', items: [{ ...item('m52'), available: true }, { ...item('m48'), available: true }], status: 'confirmed', total: 650, notes: 'Pickup at UPSA', customer_note: 'Both items are available. Your order is confirmed and will be ready on Friday.', eta: 'Friday, 2pm' }),
         order(1003, 27, { customer_name: 'Kwame Boateng (demo)', phone: '0201112222', fulfilment: 'Delivery', address: 'Kumasi, Adum', items: [item('p02', 2)], status: 'in_progress', total: 900, paid: true }),
         order(1002, 55, { customer_name: 'Abena Sarpong (demo)', phone: '0277654321', items: [item('p12')], status: 'delivered', total: 580, paid: true }),
         order(1001, 100, { customer_name: 'Yaw Darko (demo)', phone: '0559876543', items: [item('m21')], status: 'delivered', total: 800, paid: true }),
@@ -114,8 +114,14 @@
         const p = args.payload || {};
         if (!String(p.name || '').trim() || !String(p.phone || '').trim() || !Array.isArray(p.items) || !p.items.length) throw fail('name and phone are required');
         const ref = 'TN-' + db.seq++;
-        db.orders.push({ id: uid(), ref, customer_name: p.name.trim(), phone: p.phone.trim(), fulfilment: p.fulfilment === 'Delivery' ? 'Delivery' : 'Pickup', address: p.address || null, event_date: p.event_date || null, event_time: p.event_time || null, is_gift: !!p.is_gift, recipient_name: p.recipient_name || null, card_message: p.card_message || null, notes: p.notes || null, items: p.items, total: null, paid: false, status: 'new', admin_notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+        db.orders.push({ id: uid(), ref, customer_name: p.name.trim(), phone: p.phone.trim(), fulfilment: p.fulfilment === 'Delivery' ? 'Delivery' : 'Pickup', address: p.address || null, event_date: p.event_date || null, event_time: p.event_time || null, is_gift: !!p.is_gift, recipient_name: p.recipient_name || null, card_message: p.card_message || null, notes: p.notes || null, items: p.items, total: null, paid: false, status: 'new', admin_notes: null, customer_note: null, eta: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
         save(); return ref;
+      }
+      if (fn === 'track_order') {
+        const digits = s => String(s || '').replace(/\D/g, '').slice(-9);
+        const o = db.orders.find(x => x.ref.toUpperCase() === String(args.p_ref || '').trim().toUpperCase());
+        if (!o || digits(args.p_phone).length < 9 || digits(o.phone) !== digits(args.p_phone)) return null;
+        return clone({ ref: o.ref, status: o.status, name: String(o.customer_name).split(' ')[0], fulfilment: o.fulfilment, address: o.address, event_date: o.event_date, event_time: o.event_time, items: (o.items || []).map(i => ({ name: i.name, qty: i.qty, note: i.note, available: i.available === undefined ? null : i.available })), total: o.total, paid: o.paid, customer_note: o.customer_note, eta: o.eta, created_at: o.created_at, updated_at: o.updated_at });
       }
       if (fn === 'submit_review') {
         if (!String(args.p_name || '').trim() || !String(args.p_comment || '').trim()) throw fail('name and comment are required');

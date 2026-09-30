@@ -336,3 +336,21 @@ svg{width:22px;height:22px;flex:none}
 .avail button{padding:7px 11px;border-radius:99px;border:1px solid var(--line2);background:rgba(8,5,6,.5);color:var(--dim);font-weight:800;font-size:.66rem;transition:.2s}
 .avail button.on{background:rgba(95,196,138,.16);border-color:rgba(95,196,138,.55);color:var(--ok)}
 .avail button.on.no{background:rgba(239,108,108,.14);border-color:rgba(239,108,108,.5);color:var(--bad)}
+
+/* order sheet extras */
+.sec-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mini{padding:6px 12px;border-radius:99px;border:1px solid var(--line2);background:rgba(255,255,255,.04);color:var(--gold2);font-weight:800;font-size:.66rem;transition:.2s}
+.mini:hover{border-color:var(--gold)}
+.tell{padding:16px;border-radius:20px;background:linear-gradient(160deg,rgba(214,174,102,.12),rgba(232,104,138,.06));border:1px solid rgba(214,174,102,.3)}
+.seg.qk button{font-size:.66rem;padding:7px 11px}
+.wait{color:var(--rose);font-weight:700}
+.wait.late{color:#ff8a8a;animation:pulsetext 1.6s infinite}
+@keyframes pulsetext{50%{opacity:.55}}
+.pc .qa{position:absolute;top:10px;left:10px;z-index:3;padding:4px 11px;border-radius:99px;font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:rgba(8,5,6,.75);border:1px solid var(--line2);color:var(--dim);backdrop-filter:blur(6px);transition:.2s}
+.pc .qa.live{color:var(--ok);border-color:rgba(95,196,138,.5)}
+.pc .qa:hover{border-color:var(--gold)}
+.pc .star{cursor:pointer;color:var(--dim);z-index:3;transition:.2s}
+.pc .star.on{color:var(--gold2)}
+.pc .star:hover{transform:scale(1.15)}
+.sheet-f .btn.ghost svg{width:18px;height:18px}
+.list{grid-template-columns:minmax(0,1fr)}

@@ -53,6 +53,8 @@ create table public.orders (
   paid boolean not null default false,
   status text not null default 'new' check (status in ('new','confirmed','in_progress','ready','delivered','cancelled')),
   admin_notes text,
+  customer_note text,
+  eta text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -176,3 +178,26 @@ on conflict (id) do nothing;
 create policy "admin uploads product images" on storage.objects for insert to authenticated with check (bucket_id = 'product-images' and public.is_admin());
 create policy "admin updates product images" on storage.objects for update to authenticated using (bucket_id = 'product-images' and public.is_admin());
 create policy "admin deletes product images" on storage.objects for delete to authenticated using (bucket_id = 'product-images' and public.is_admin());
+
+-- ---------- order tracking (customer facing, needs order number + phone) ----------
+create or replace function public.track_order(p_ref text, p_phone text)
+returns jsonb language plpgsql stable security definer set search_path = ''
+as $$
+declare
+  o public.orders%rowtype;
+  d text := right(regexp_replace(coalesce(p_phone, ''), '\D', '', 'g'), 9);
+begin
+  select * into o from public.orders where upper(ref) = upper(btrim(coalesce(p_ref, ''))) limit 1;
+  if not found or length(d) < 9 or right(regexp_replace(o.phone, '\D', '', 'g'), 9) <> d then
+    return null;
+  end if;
+  return jsonb_build_object(
+    'ref', o.ref, 'status', o.status, 'name', split_part(o.customer_name, ' ', 1),
+    'fulfilment', o.fulfilment, 'address', o.address, 'event_date', o.event_date, 'event_time', o.event_time,
+    'items', (select coalesce(jsonb_agg(jsonb_build_object('name', i->>'name', 'qty', i->'qty', 'note', i->>'note', 'available', i->'available')), '[]'::jsonb) from jsonb_array_elements(o.items) i),
+    'total', o.total, 'paid', o.paid, 'customer_note', o.customer_note, 'eta', o.eta,
+    'created_at', o.created_at, 'updated_at', o.updated_at
+  );
+end $$;
+revoke all on function public.track_order(text, text) from public;
+grant execute on function public.track_order(text, text) to anon, authenticated;

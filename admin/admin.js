@@ -26,6 +26,8 @@ const I = {
   chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6"/></svg>',
   arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.300-5.500 6.500-5.500s5.700 1.900 6.500 5.500M16 4.800a3.500 3.500 0 0 1 0 6.400M18 14.800c1.900.7 3.100 2.400 3.500 5.200"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
   cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.500"/></svg>',
 };
 
@@ -36,6 +38,7 @@ const NAV = [
   ['dashboard', 'Home', I.home],
   ['orders', 'Orders', I.orders],
   ['products', 'Products', I.box],
+  ['customers', 'Customers', I.users],
   ['reviews', 'Reviews', I.star],
   ['messages', 'Messages', I.mail],
   ['categories', 'Categories', I.grid],
@@ -138,7 +141,7 @@ async function logout() { await SB.signOut(); S.user = null; app.innerHTML = log
 
 /* ---------- shell + router ---------- */
 function startShell() {
-  const nav = NAV.map(([k, l, ic], i) => (i === 0 ? '<p class="lbl">Overview</p>' : i === 1 ? '<p class="lbl">Manage</p>' : i === 5 ? '<p class="lbl">Shop</p>' : '') + `<a href="#/${k}" data-k="${k}">${ic}<span>${l}</span>${['orders', 'reviews', 'messages'].includes(k) ? `<i class="dotb" data-badge="${k}" hidden></i>` : ''}</a>`).join('');
+  const nav = NAV.map(([k, l, ic], i) => (i === 0 ? '<p class="lbl">Overview</p>' : i === 1 ? '<p class="lbl">Manage</p>' : i === 6 ? '<p class="lbl">Shop</p>' : '') + `<a href="#/${k}" data-k="${k}">${ic}<span>${l}</span>${['orders', 'reviews', 'messages'].includes(k) ? `<i class="dotb" data-badge="${k}" hidden></i>` : ''}</a>`).join('');
   const tabs = TAB_KEYS.map(k => {
     const n = { dashboard: ['Home', I.home], orders: ['Orders', I.orders], products: ['Products', I.box], reviews: ['Reviews', I.star], more: ['More', I.more] }[k];
     const badge = ['orders', 'reviews'].includes(k) ? `<i class="dotb" data-badge="${k}" hidden></i>` : k === 'more' ? '<i class="dotb" data-badge="messages" hidden></i>' : '';
@@ -200,7 +203,7 @@ async function route() {
   const k = VIEWS[key] ? key : 'dashboard'; S.cur = k;
   const nav = NAV.find(n => n[0] === k);
   $('#ttl').textContent = nav ? nav[1] === 'Home' ? 'Home' : nav[1] : 'Home';
-  $$('[data-k]').forEach(a => a.classList.toggle('on', a.dataset.k === k || (a.dataset.k === 'more' && ['messages', 'categories', 'settings'].includes(k))));
+  $$('[data-k]').forEach(a => a.classList.toggle('on', a.dataset.k === k || (a.dataset.k === 'more' && ['customers', 'messages', 'categories', 'settings'].includes(k))));
   window.scrollTo(0, 0);
   const v = $('#view');
   v.classList.add('enter'); clearTimeout(S.enterT); S.enterT = setTimeout(() => v.classList.remove('enter'), 1400);
@@ -279,7 +282,7 @@ VIEWS.dashboard = async v => {
 function orderRow(o) {
   return `<button class="item" data-order="${o.id}"><span class="avatar">${esc(initials(o.customer_name))}</span>
     <span class="meta"><b>${esc(o.customer_name)}</b><small>${esc(o.ref)} · ${esc(summary(o.items) || 'No items')}</small></span>
-    <span class="right"><span class="pill s-${o.status}">${STATUS[o.status]}</span><small>${o.total ? `<span class="amt">${money(o.total)}</span>` : ago(o.created_at)}</small></span></button>`;
+    <span class="right"><span class="pill s-${o.status}">${STATUS[o.status]}</span><small>${o.total ? `<span class="amt">${money(o.total)}</span>` : o.status === 'new' ? `<span class="wait ${Date.now() - new Date(o.created_at) > 72e5 ? 'late' : ''}">Waiting ${ago(o.created_at).replace(' ago', '')}</span>` : ago(o.created_at)}</small></span></button>`;
 }
 
 /* ---------- orders ---------- */
@@ -318,6 +321,13 @@ const stepper = s => {
   const i = STEPS.indexOf(s);
   return `<div class="steps">${STEPS.map((k, n) => `${n ? `<span class="bar2 ${n <= i ? 'done' : ''}"></span>` : ''}<span class="st ${n < i ? 'done' : n === i ? 'cur' : ''}"><i></i>${STATUS[k]}</span>`).join('')}</div>`;
 };
+const QUICK = {
+  available: 'Good news, your items are available. Your order is confirmed and we are getting started.',
+  partial: 'Some of your items are not available. Please check below. We can suggest a replacement if you like.',
+  none: 'Sorry, these items are not available right now. Tell us your budget and we will suggest something similar.',
+  ready: 'Your order is ready. Please come for pickup at NIMA / UPSA.',
+  way: 'Your order is on its way to you. Please keep your phone close.',
+};
 function openOrder(id) {
   const o = ORDERS.find(x => x.id === id) || null;
   const load = o ? Promise.resolve(o) : SB.select('orders', `select=*&id=eq.${id}`).then(r => r[0]);
@@ -325,8 +335,9 @@ function openOrder(id) {
     if (!o) return toast('Order not found', true);
     let status = o.status;
     const items = JSON.parse(JSON.stringify(o.items || []));
+    const avBtns = (i) => `<button type="button" data-av="1" class="${i.available === true ? 'on' : ''}">Available</button><button type="button" data-av="0" class="${i.available === false ? 'on no' : ''}">Not available</button>`;
     const body = `
-      <div class="row" style="align-items:center"><span class="pill s-${o.status}" id="oPill">${STATUS[o.status]}</span><small style="color:var(--mute)">${esc(o.ref)} · ${fullDate(o.created_at)}</small></div>
+      <div class="row" style="align-items:center"><span class="pill s-${o.status}">${STATUS[o.status]}</span><small style="color:var(--mute)">${esc(o.ref)} · ${fullDate(o.created_at)}</small></div>
       <div class="card" style="padding:14px"><dl class="kv">
         <dt>Customer</dt><dd><b>${esc(o.customer_name)}</b></dd>
         <dt>Phone</dt><dd>${esc(o.phone)}</dd>
@@ -336,48 +347,87 @@ function openOrder(id) {
         ${o.card_message ? `<dt>Card</dt><dd>${esc(o.card_message)}</dd>` : ''}
         ${o.notes ? `<dt>Notes</dt><dd>${esc(o.notes)}</dd>` : ''}
       </dl></div>
-      <div><p class="eyebrow" style="margin-bottom:8px">Items <span style="color:var(--dim);letter-spacing:0;text-transform:none;font-weight:600">· tap to mark availability</span></p><div class="lines" id="oItems">${items.map((i, n) => `<div class="ln" data-i="${n}"><span>${esc(i.name)}<b class="qtyb"> ×${i.qty}</b>${i.note ? `<small>“${esc(i.note)}”</small>` : ''}</span><span class="avail"><button type="button" data-av="1" class="${i.available !== false ? 'on' : ''}">Available</button><button type="button" data-av="0" class="${i.available === false ? 'on no' : ''}">Not available</button></span></div>`).join('') || '<p class="quote">No items recorded.</p>'}</div></div>
+      <div><div class="sec-row"><p class="eyebrow">Items</p><button type="button" class="mini" data-allav>Mark all available</button></div>
+        <div class="lines" id="oItems">${items.map((i, n) => `<div class="ln" data-i="${n}"><span>${esc(i.name)}<b class="qtyb"> ×${i.qty}</b>${i.note ? `<small>“${esc(i.note)}”</small>` : ''}</span><span class="avail">${avBtns(i)}</span></div>`).join('') || '<p class="quote">No items recorded.</p>'}</div></div>
       <div id="oSteps">${stepper(status)}</div>
-      <div><p class="eyebrow" style="margin-bottom:8px">Update status</p><div class="seg" id="oSeg">${Object.keys(STATUS).map(s => `<button type="button" data-s="${s}" class="${s === status ? 'on' : ''}">${STATUS[s]}</button>`).join('')}</div></div>
+      <div><p class="eyebrow" style="margin-bottom:8px">Order status</p><div class="seg" id="oSeg">${Object.keys(STATUS).map(s => `<button type="button" data-s="${s}" class="${s === status ? 'on' : ''}">${STATUS[s]}</button>`).join('')}</div></div>
+      <div class="tell"><p class="eyebrow">What the customer sees</p>
+        <p class="quote" style="margin:4px 0 10px;font-size:.8rem">This appears on their Track your order page, together with each item's availability.</p>
+        <div class="seg qk" id="oQuick"><button type="button" data-q="available">All available</button><button type="button" data-q="partial">Some unavailable</button><button type="button" data-q="none">None available</button><button type="button" data-q="ready">Ready</button><button type="button" data-q="way">On the way</button></div>
+        <label class="field" style="margin-top:12px">Message to customer<textarea id="oNote" maxlength="500" placeholder="e.g. Your bouquet is available. We will deliver tomorrow at 2pm.">${esc(o.customer_note || '')}</textarea></label>
+        <label class="field" style="margin-top:12px">Expected time <input id="oEta" maxlength="60" value="${esc(o.eta || '')}" placeholder="e.g. Tomorrow, 2pm"></label></div>
       <label class="field">Total (GH₵)<input id="oTotal" type="number" inputmode="decimal" min="0" step="0.01" value="${o.total ?? ''}" placeholder="Agreed price"></label>
       <div class="sw"><div>Paid<small>Mark when payment is received</small></div><label class="tg"><input type="checkbox" id="oPaid" ${o.paid ? 'checked' : ''}><i></i></label></div>
       <label class="field">Private notes<textarea id="oNotes" placeholder="Only you can see this">${esc(o.admin_notes || '')}</textarea></label>
-      <button type="button" class="btn wa wide" data-reply>${I.wa} Reply to customer on WhatsApp</button>
-      <p class="quote" style="margin:-6px 0 0;font-size:.78rem">Sends the availability of each item above and the total. A new order is marked Confirmed, or Cancelled if nothing is available.</p>
-      <div class="row"><a class="btn wa sm grow" target="_blank" rel="noopener" href="https://wa.me/${waNumber(o.phone)}?text=${encodeURIComponent(`Hello ${o.customer_name}, this is TheNobles about your order ${o.ref}.`)}">${I.wa} Chat only</a><a class="btn ghost sm grow" href="tel:${esc(o.phone)}">${I.phone} Call</a></div>`;
-    const el = sheet(`Order ${esc(o.ref)}`, body, `<button class="btn danger" data-del>Delete</button><button class="btn gold grow" data-save>Save changes</button>`);
+      <div class="row"><button type="button" class="btn wa sm grow" data-notify>${I.wa} Also message on WhatsApp</button><a class="btn ghost sm grow" href="tel:${esc(o.phone)}">${I.phone} Call</a></div>`;
+    const el = sheet(`Order ${esc(o.ref)}`, body, `<button class="btn danger" data-del>Delete</button><button class="btn gold grow" data-save>Update customer</button>`);
+
+    const setAv = (row, yes) => $$('[data-av]', row).forEach(x => { const isYes = x.dataset.av === '1'; x.classList.toggle('on', yes === null ? false : isYes === yes); x.classList.toggle('no', yes === false && !isYes); });
     el.querySelector('#oItems').addEventListener('click', e => {
       const b = e.target.closest('[data-av]'); if (!b) return;
       const row = b.closest('[data-i]'), n = Number(row.dataset.i), yes = b.dataset.av === '1';
-      items[n].available = yes;
-      $$('[data-av]', row).forEach(x => { x.classList.toggle('on', (x.dataset.av === '1') === yes); x.classList.toggle('no', x.dataset.av === '0' && !yes); });
+      items[n].available = items[n].available === yes ? null : yes; setAv(row, items[n].available);
     });
-    el.querySelector('[data-reply]').addEventListener('click', async ev => {
-      const btn = ev.currentTarget, w = window.open('about:blank', '_blank');
-      const totalVal = $('#oTotal', el).value, yesN = items.filter(i => i.available !== false).length;
-      let next = status;
-      if (status === 'new') next = yesN === 0 && items.length ? 'cancelled' : 'confirmed';
-      const msg = availabilityMessage(o, items, totalVal === '' ? null : Number(totalVal));
-      const url = `https://wa.me/${waNumber(o.phone)}?text=${encodeURIComponent(msg)}`;
-      const ok = await run(btn, async () => {
-        const [row] = await SB.update('orders', `id=eq.${o.id}`, { items, status: next, total: totalVal === '' ? null : Number(totalVal) });
-        Object.assign(ORDERS.find(x => x.id === o.id) || {}, row);
-      });
-      if (w && !w.closed) w.location.href = url; else location.href = url;
-      if (ok !== null) { closeSheet(); refreshBadges(); route(); toast(next !== status ? `Reply opened. Order marked ${STATUS[next]}.` : 'Reply opened in WhatsApp'); }
+    el.querySelector('[data-allav]').addEventListener('click', () => { items.forEach((i, n) => { i.available = true; setAv(el.querySelector(`[data-i="${n}"]`), true); }); });
+    el.querySelector('#oQuick').addEventListener('click', e => {
+      const b = e.target.closest('[data-q]'); if (!b) return;
+      $('#oNote', el).value = QUICK[b.dataset.q];
+      if (b.dataset.q === 'available') { items.forEach((i, n) => { i.available = true; setAv(el.querySelector(`[data-i="${n}"]`), true); }); if (status === 'new') setStatus('confirmed'); }
+      if (b.dataset.q === 'none') { items.forEach((i, n) => { i.available = false; setAv(el.querySelector(`[data-i="${n}"]`), false); }); }
+      if (b.dataset.q === 'ready') setStatus('ready');
+      if (b.dataset.q === 'way') setStatus('ready');
     });
-    el.querySelector('#oSeg').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if (!b) return; status = b.dataset.s; $$('#oSeg button', el).forEach(x => x.classList.toggle('on', x === b)); $('#oSteps', el).innerHTML = stepper(status); });
+    const setStatus = s => { status = s; $$('#oSeg button', el).forEach(x => x.classList.toggle('on', x.dataset.s === s)); $('#oSteps', el).innerHTML = stepper(s); };
+    el.querySelector('#oSeg').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if (b) setStatus(b.dataset.s); });
+    el.querySelector('[data-notify]').addEventListener('click', () => {
+      const t = $('#oTotal', el).value, note = $('#oNote', el).value.trim();
+      let msg = availabilityMessage(o, items, t === '' ? null : Number(t));
+      if (note) msg += `\n\n${note}`;
+      msg += `\n\nFollow your order here: ${SITE}/track.html?ref=${o.ref}`;
+      window.open(`https://wa.me/${waNumber(o.phone)}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+    });
     el.querySelector('[data-save]').addEventListener('click', ev => run(ev.currentTarget, async () => {
       const t = $('#oTotal', el).value;
-      const [row] = await SB.update('orders', `id=eq.${o.id}`, { items, status, total: t === '' ? null : Number(t), paid: $('#oPaid', el).checked, admin_notes: $('#oNotes', el).value.trim() || null });
+      // once the order is past "new", any item the admin did not flag is treated as available
+      const finalItems = items.map(i => ({ ...i, available: i.available === null || i.available === undefined ? (status !== 'new' && status !== 'cancelled' ? true : null) : i.available }));
+      const [row] = await SB.update('orders', `id=eq.${o.id}`, { items: finalItems, status, total: t === '' ? null : Number(t), paid: $('#oPaid', el).checked, admin_notes: $('#oNotes', el).value.trim() || null, customer_note: $('#oNote', el).value.trim() || null, eta: $('#oEta', el).value.trim() || null });
       Object.assign(ORDERS.find(x => x.id === o.id) || {}, row);
       closeSheet(); refreshBadges(); route();
-    }, 'Order updated'));
+    }, 'Customer updated'));
     el.querySelector('[data-del]').addEventListener('click', async () => {
       if (!(await confirmBox('Delete order?', `Order ${o.ref} from ${o.customer_name} will be removed for good.`))) return;
       await run(null, async () => { await SB.remove('orders', `id=eq.${o.id}`); ORDERS = ORDERS.filter(x => x.id !== o.id); refreshBadges(); route(); }, 'Order deleted');
     });
   });
+}
+
+/* ---------- customers ---------- */
+VIEWS.customers = async v => {
+  const rows = await SB.select('orders', 'select=id,ref,customer_name,phone,total,status,created_at,items&order=created_at.desc&limit=1000');
+  const map = new Map();
+  rows.forEach(o => {
+    const k = String(o.phone || '').replace(/\D/g, '').slice(-9) || o.id;
+    const c = map.get(k) || { key: k, name: o.customer_name, phone: o.phone, orders: [], last: o.created_at };
+    c.orders.push(o); map.set(k, c);
+  });
+  CUSTOMERS = [...map.values()].map(c => ({ ...c, spent: c.orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total || 0), 0) }));
+  drawCustomers(v);
+};
+let CUSTOMERS = [];
+function drawCustomers(v = $('#view')) {
+  const q = (S.filters.custQ || '').trim().toLowerCase();
+  const list = CUSTOMERS.filter(c => !q || `${c.name} ${c.phone}`.toLowerCase().includes(q));
+  v.innerHTML = `<div class="page-h"><div><h1>Customers</h1><p>${CUSTOMERS.length} people have ordered</p></div></div>
+    <div class="search">${I.search}<input id="cq" type="search" placeholder="Search name or phone" value="${esc(S.filters.custQ || '')}"></div>
+    <div class="list">${list.map(c => `<button class="item" data-cust="${c.key}"><span class="avatar">${esc(initials(c.name))}</span><span class="meta"><b>${esc(c.name)}</b><small>${esc(c.phone)} · last order ${ago(c.last)}</small></span><span class="right"><span class="amt">${c.orders.length} order${c.orders.length > 1 ? 's' : ''}</span><small>${c.spent ? money(c.spent) : ''}</small></span></button>`).join('') || '<div class="empty"><b>No customers yet</b>People who order from the website appear here.</div>'}</div>`;
+  $('#cq').addEventListener('input', e => { S.filters.custQ = e.target.value; const pos = e.target.selectionStart; drawCustomers(); const n = $('#cq'); n.focus(); n.setSelectionRange(pos, pos); });
+}
+function openCustomer(key) {
+  const c = CUSTOMERS.find(x => x.key === key); if (!c) return;
+  const el = sheet(esc(c.name), `<small style="color:var(--mute)">${esc(c.phone)} · ${c.orders.length} order${c.orders.length > 1 ? 's' : ''}${c.spent ? ' · ' + money(c.spent) + ' total' : ''}</small>
+    <div class="row"><a class="btn wa sm grow" target="_blank" rel="noopener" href="https://wa.me/${waNumber(c.phone)}">${I.wa} WhatsApp</a><a class="btn ghost sm grow" href="tel:${esc(c.phone)}">${I.phone} Call</a></div>
+    <div class="list">${c.orders.map(orderRow).join('')}</div>`);
+  el.addEventListener('click', e => { const b = e.target.closest('[data-order]'); if (b) { closeSheet(); openOrder(b.dataset.order); } });
 }
 
 /* ---------- products ---------- */
@@ -394,7 +444,7 @@ function drawProducts(v = $('#view')) {
     <div class="toolbar"><div class="search" style="margin:0">${I.search}<input id="pq" type="search" placeholder="Search products" value="${esc(f.productsQ)}"></div>
       <label class="field"><select id="pcat"><option value="">All categories</option>${S.cats.map(c => `<option value="${esc(c.id)}" ${f.productsCat === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label></div>
     <div class="pgrid" style="margin-top:12px">${list.map(p => `<button class="pc ${p.active ? '' : 'hid'}" data-product="${p.id}"><span class="ph">
-      <img src="${esc(imgUrl(p.image))}" alt="" loading="lazy">${p.active ? '' : '<span class="pill s-hidden off">Hidden</span>'}${p.featured ? `<span class="star">${I.star}</span>` : ''}<span class="price ${p.price ? '' : 'none'}">${p.price ? money(p.price) : 'No price'}</span></span>
+      <img src="${esc(imgUrl(p.image))}" alt="" loading="lazy"><span class="qa ${p.active ? 'live' : ''}" data-ptoggle="active" data-id="${p.id}">${p.active ? 'Live' : 'Hidden'}</span><span class="star ${p.featured ? 'on' : ''}" data-ptoggle="featured" data-id="${p.id}" title="Feature on home page">${I.star}</span><span class="price ${p.price ? '' : 'none'}">${p.price ? money(p.price) : 'No price'}</span></span>
       <span class="pb"><b>${esc(p.name)}</b><small>${esc(cn(p.category_id))}</small></span></button>`).join('') || '<div class="empty" style="grid-column:1/-1"><b>No products</b>Tap Add to create one.</div>'}</div>
     <button class="fab" data-act="new-product" aria-label="Add product">${I.plus} Add product</button>`;
   $('#pq').addEventListener('input', e => { f.productsQ = e.target.value; const pos = e.target.selectionStart; drawProducts(); const n = $('#pq'); n.focus(); n.setSelectionRange(pos, pos); });
@@ -425,7 +475,7 @@ function openProduct(id) {
     <label class="field">Description<textarea id="pDesc" maxlength="400" placeholder="What is included?">${esc(p ? p.description : '')}</textarea></label>
     <div class="sw"><div>Show on website<small>Turn off to hide it without deleting</small></div><label class="tg"><input type="checkbox" id="pActive" ${!p || p.active ? 'checked' : ''}><i></i></label></div>
     <div class="sw"><div>Featured<small>Appears in Popular right now on the home page</small></div><label class="tg"><input type="checkbox" id="pFeat" ${p && p.featured ? 'checked' : ''}><i></i></label></div>`;
-  const el = sheet(p ? 'Edit product' : 'New product', body, `${p ? '<button class="btn danger" data-del>Delete</button>' : ''}<button class="btn gold grow" data-save>${p ? 'Save changes' : 'Add product'}</button>`);
+  const el = sheet(p ? 'Edit product' : 'New product', body, `${p ? '<button class="btn danger" data-del>Delete</button><button class="btn ghost" data-dup title="Duplicate">' + I.copy + '</button>' : ''}<button class="btn gold grow" data-save>${p ? 'Save changes' : 'Add product'}</button>`);
   $('#pfile', el).addEventListener('change', async e => {
     const file = e.target.files[0]; if (!file) return;
     try { newBlob = await resizeImage(file); $('#prevBox', el).innerHTML = `<img id="prev" src="${URL.createObjectURL(newBlob)}" alt="">`; } catch (x) { toast(x.message, true); }
@@ -443,6 +493,11 @@ function openProduct(id) {
     else await SB.insert('products', { ...row, slug, sort: Math.min(0, ...PRODUCTS.map(x => x.sort)) - 1 });
     closeSheet(); route();
   }, p ? 'Product saved' : 'Product added'));
+  const dup = $('[data-dup]', el);
+  if (dup) dup.addEventListener('click', ev => run(ev.currentTarget, async () => {
+    const copy = { name: p.name + ' (copy)', description: p.description, category_id: p.category_id, price: p.price, image: p.image, active: false, featured: false, slug: `${slugify(p.name)}-${Math.random().toString(36).slice(2, 6)}`, sort: Math.min(0, ...PRODUCTS.map(x => x.sort)) - 1 };
+    await SB.insert('products', copy); closeSheet(); route();
+  }, 'Copy created (hidden). Edit it and turn it on.'));
   const del = $('[data-del]', el);
   if (del) del.addEventListener('click', async () => {
     if (!(await confirmBox('Delete product?', `${p.name} will be removed from the website.`))) return;
@@ -555,6 +610,12 @@ document.addEventListener('click', e => {
   const t = e.target;
   const g = (sel) => t.closest(sel);
   let x;
+  if ((x = g('[data-ptoggle]'))) {
+    e.stopPropagation(); const p = PRODUCTS.find(pp => pp.id === x.dataset.id); if (!p) return;
+    const key = x.dataset.ptoggle, val = !p[key];
+    return run(null, async () => { await SB.update('products', `id=eq.${p.id}`, { [key]: val }); p[key] = val; drawProducts(); }, key === 'active' ? (val ? 'Product is live' : 'Product hidden from the website') : (val ? 'Featured on the home page' : 'Removed from featured'));
+  }
+  if ((x = g('[data-cust]'))) return openCustomer(x.dataset.cust);
   if ((x = g('[data-order]'))) return openOrder(x.dataset.order);
   if ((x = g('[data-product]'))) return openProduct(x.dataset.product);
   if ((x = g('[data-msg]'))) return openMessage(x.dataset.msg);
@@ -582,6 +643,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet()
 
 function openMore() {
   const el = sheet('More', `<div class="more-grid">
+    <a href="#/customers">${I.users} Customers</a>
     <a href="#/messages">${I.mail} Messages<i class="dotb" ${S.badges.messages ? '' : 'hidden'}>${S.badges.messages}</i></a>
     <a href="#/categories">${I.grid} Categories</a>
     <a href="#/settings">${I.cog} Settings</a>

@@ -136,6 +136,7 @@ const PAGES = [
   ['categories', 'categories.html', 'Categories'],
   ['how', 'how-it-works.html', 'How it works'],
   ['contact', 'contact.html', 'Contact'],
+  ['track', 'track.html', 'Track order'],
 ];
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -153,6 +154,7 @@ const ICON = {
   user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>',
   wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.6-4.7A8.5 8.5 0 1 1 8 19.5L3 21z"/><path d="M9 8.5c0 3.5 2.5 6 6 6l1-1.5-2-1-1 .8c-1-.4-1.8-1.2-2.2-2.2l.8-1-1-2z"/></svg>',
   tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.500" cy="8.500" r="1.200"/></svg>',
+  track: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.600 7-11a7 7 0 1 0-14 0c0 5.400 7 11 7 11z"/><circle cx="12" cy="10" r="2.500"/></svg>',
   grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
 };
 
@@ -166,6 +168,7 @@ const header = `
     ${PAGES.map(([id, href, label]) => `<a href="${href}"${id === page ? ' aria-current="page"' : ''}>${label}</a>`).join('')}
   </nav>
   <div class="actions">
+    <a class="icon-btn trk" href="track.html" aria-label="Track your order" title="Track your order">${ICON.track}</a>
     <a class="icon-btn wa-top" href="https://wa.me/${WHATSAPP}" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">${ICON.wa}</a>
     <button class="icon-btn" id="openCart" aria-label="Open cart">${ICON.cart}<i class="badge" id="cartCount" hidden>0</i></button>
   </div>
@@ -183,7 +186,7 @@ const footer = `
     ${SOCIALS.map(([n, href, svg]) => `<a href="${href}" target="_blank" rel="noopener" aria-label="${n}" title="${n}">${svg}</a>`).join('')}
   </div>
   <p class="foot-info">NIMA &amp; UPSA, Accra · Delivery nationwide · <a href="tel:+233${PHONE.slice(1)}">${PHONE}</a> · <a href="mailto:${EMAIL}">${EMAIL}</a></p>
-  <p class="foot-links"><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms of Service</a></p>
+  <p class="foot-links"><a href="track.html">Track order</a><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms of Service</a></p>
   <p class="copy">© ${new Date().getFullYear()} TheNobles.gift&amp;surprise_hub. All rights reserved.</p>
   <p class="credit">Designed by <a href="https://baidenz-studioz-web.vercel.app/" target="_blank" rel="noopener">Baidenz Studioz</a></p>
 </footer>`;
@@ -215,7 +218,7 @@ const overlays = `
         <button class="btn primary grow" id="mAdd">Add to cart</button>
       </div>
       <a class="pl" id="mList" href="prices.html" hidden>View the price list</a>
-      <p class="fine">Rashida confirms the final price on WhatsApp.</p>
+      <p class="fine">Rashida checks availability and confirms the final price. You can track your order after you place it.</p>
     </div>
   </div>
 </div>
@@ -235,6 +238,19 @@ const overlays = `
       <p class="err" id="rErr" role="alert" hidden></p>
       <button class="btn primary" type="submit">Submit review</button>
     </form>
+  </div>
+</div>
+<div class="overlay" id="doneWrap" hidden>
+  <div class="modal done-modal" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <button class="x" data-close aria-label="Close">×</button>
+    <div class="done-body">
+      <div class="tick"><svg viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="26" cy="26" r="23" class="ring"/><path d="m15 27 8 8 15-17" class="check"/></svg></div>
+      <h3 id="dTitle">Order received</h3>
+      <p>Thank you<span id="doneName"></span>. Rashida will check availability and update you on the tracking page.</p>
+      <div class="refchip">Order number <b id="doneRef"></b></div>
+      <a class="btn primary wide" id="doneTrack" href="track.html">Track your order</a>
+      <button class="btn ghost wide" data-close>Continue shopping</button>
+    </div>
   </div>
 </div>
 <div class="overlay" id="cartWrap" hidden>
@@ -266,8 +282,8 @@ const overlays = `
         </div>
         <label class="field">Extra notes<textarea name="notes" rows="2" placeholder="Colours, budget, allergies"></textarea></label>
         <p class="err" id="err" role="alert" hidden></p>
-        <button class="btn primary wide" type="submit">Send order on WhatsApp</button>
-        <p class="fine">No payment is taken on this site. Rashida confirms the price and payment with you on WhatsApp.</p>
+        <button class="btn primary wide" type="submit">Place order</button>
+        <p class="fine">No payment is taken on this site. Rashida checks availability and confirms the price. You can follow your order on the <a href="track.html" style="text-decoration:underline">Track your order</a> page.</p>
       </form>
     </div>
   </aside>
@@ -428,9 +444,16 @@ $('#giftToggle').onchange = e => $('#giftBox').hidden = !e.target.checked;
 $$('input[name=mode]').forEach(r => r.onchange = () => $('#addrRow').hidden = $('input[name=mode]:checked').value !== 'Delivery');
 $('input[name=date]').min = new Date().toISOString().slice(0, 10);
 
-function openWhatsApp(text, w) {
-  const url = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`;
-  if (w && !w.closed) w.location.href = url; else location.href = url;
+const rememberOrder = (ref, phone) => {
+  try {
+    const list = JSON.parse(localStorage.getItem('nobles-orders') || '[]').filter(o => o.ref !== ref);
+    list.unshift({ ref, phone }); localStorage.setItem('nobles-orders', JSON.stringify(list.slice(0, 10)));
+  } catch (e) {}
+};
+function showDone(ref, name) {
+  $('#doneRef').textContent = ref; $('#doneName').textContent = name ? ' ' + name.split(' ')[0] : '';
+  $('#doneTrack').href = 'track.html?ref=' + encodeURIComponent(ref);
+  show('#doneWrap');
 }
 
 $('#checkout').addEventListener('submit', async e => {
@@ -445,53 +468,41 @@ $('#checkout').addEventListener('submit', async e => {
   if (delivery && !(f.get('address') || '').trim()) return fail('Please add a delivery address.');
   err.hidden = true;
 
-  const w = window.open('about:blank', '_blank');
-  const btn = e.submitter; if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-
+  const btn = e.submitter; if (btn) { btn.disabled = true; btn.textContent = 'Placing your order…'; }
   const gift = $('#giftToggle').checked;
   const items = cart.map(l => { const p = PRODUCTS.find(x => x.id === l.id); return { slug: p.id, name: p.name, qty: l.qty, note: l.note || '' }; });
-  let ref = '';
-  if (HAS_BACKEND) try {
-    ref = await SB.rpc('submit_order', { payload: {
+  try {
+    if (!HAS_BACKEND) throw new Error('offline');
+    const ref = await SB.rpc('submit_order', { payload: {
       name, phone, fulfilment: delivery ? 'Delivery' : 'Pickup', address: (f.get('address') || '').trim(),
       event_date: f.get('date') || '', event_time: f.get('time') || '', is_gift: gift,
       recipient_name: gift ? (f.get('rname') || '').trim() : '', card_message: gift ? (f.get('msg') || '').trim() : '',
       notes: (f.get('notes') || '').trim(), items,
     } });
-  } catch (x) { /* still send the WhatsApp message */ }
-
-  const lines = cart.map((l, i) => {
-    const p = PRODUCTS.find(x => x.id === l.id);
-    return `${i + 1}. ${p.name} x${l.qty}${l.note ? ` (${l.note})` : ''}`;
-  });
-  const parts = [
-    `Hello TheNobles, I would like to order${ref ? ' (' + ref + ')' : ''}:`, '', ...lines, '',
-    `Name: ${name}`, `Phone: ${phone}`,
-    delivery ? 'Delivery to: ' + f.get('address').trim() : 'Pickup at NIMA / UPSA',
-  ];
-  if (f.get('date')) parts.push(`Date: ${f.get('date')}${f.get('time') ? ' at ' + f.get('time') : ''}`);
-  if (gift) {
-    if (f.get('rname')) parts.push(`Gift for: ${f.get('rname').trim()}`);
-    if (f.get('msg')) parts.push(`Card message: ${f.get('msg').trim()}`);
+    if (!ref) throw new Error('no reference');
+    rememberOrder(ref, phone);
+    cart = []; save(); renderCart(); e.target.reset(); $('#giftBox').hidden = true; $('#addrRow').hidden = true;
+    closeAll(); showDone(ref, name);
+  } catch (x) {
+    fail('We could not place your order just now. Please try again in a moment, or call 0551586167.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Place order'; }
   }
-  if ((f.get('notes') || '').trim()) parts.push(`Notes: ${f.get('notes').trim()}`);
-  openWhatsApp(parts.join('\n'), w);
-
-  if (btn) { btn.disabled = false; btn.textContent = 'Send order on WhatsApp'; }
-  cart = []; save(); renderCart(); e.target.reset(); $('#giftBox').hidden = true; $('#addrRow').hidden = true;
-  closeAll(); toast(ref ? `Order ${ref} sent` : 'Order sent');
 });
 
 /* contact page form */
 const cf = $('#contactForm');
 if (cf) cf.addEventListener('submit', async e => {
   e.preventDefault();
-  const f = new FormData(cf);
+  const f = new FormData(cf), btn = e.submitter;
   const nm = (f.get('name') || '').trim(), ph = (f.get('phone') || '').trim(), msg = (f.get('message') || '').trim();
-  const w = window.open('about:blank', '_blank');
-  if (HAS_BACKEND) try { await SB.rpc('submit_message', { p_name: nm, p_phone: ph, p_message: msg }); } catch (x) {}
-  openWhatsApp(`Hello TheNobles, my name is ${nm}.\n${msg}`, w);
-  cf.reset(); toast('Message sent');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  try {
+    if (!HAS_BACKEND) throw new Error('offline');
+    await SB.rpc('submit_message', { p_name: nm, p_phone: ph, p_message: msg });
+    cf.reset(); toast('Message sent. We will get back to you soon.');
+  } catch (x) { toast('Could not send. Please call 0551586167.'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Send message'; } }
 });
 
 /* ---------- reviews ---------- */
@@ -518,6 +529,68 @@ $('#reviewForm').addEventListener('submit', async e => {
     e.target.reset(); closeAll(); toast('Thank you. Your review is awaiting approval.');
   } catch (x) { err.textContent = 'Could not send your review. Please try again.'; err.hidden = false; }
 });
+
+/* ---------- track your order ---------- */
+const trackForm = $('#trackForm');
+if (trackForm) {
+  const STEPS = [
+    ['new', 'Order received', 'We have your order and are checking availability.'],
+    ['confirmed', 'Confirmed', 'Your items are confirmed and your order is booked in.'],
+    ['in_progress', 'Being prepared', 'Your gift is being put together by hand.'],
+    ['ready', 'Ready', null],
+    ['delivered', 'Delivered', 'Enjoy your gift. Thank you for choosing TheNobles.'],
+  ];
+  let current = null, timer = null;
+  const saved = () => { try { return JSON.parse(localStorage.getItem('nobles-orders') || '[]'); } catch (e) { return []; } };
+  const when = d => { const s = (Date.now() - new Date(d)) / 1000; return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + ' min ago' : s < 86400 ? Math.floor(s / 3600) + ' h ago' : new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); };
+  const renderSaved = () => {
+    const list = saved(); const box = $('#trackSaved');
+    box.hidden = !list.length;
+    box.innerHTML = list.length ? '<p class="eyebrow">Your recent orders</p><div class="chips">' + list.map(o => `<button type="button" class="chip" data-tref="${esc(o.ref)}">${esc(o.ref)}</button>`).join('') + '</div>' : '';
+  };
+  function render(o) {
+    const cancelled = o.status === 'cancelled', idx = STEPS.findIndex(s => s[0] === o.status);
+    const readyText = o.fulfilment === 'Delivery' ? 'Your order is ready and on its way to you.' : 'Your order is ready for pickup at NIMA / UPSA.';
+    const head = cancelled ? ['Order cancelled', 'This order was cancelled. Message us if you would like to place it again.'] : [STEPS[idx][1], STEPS[idx][0] === 'ready' ? readyText : STEPS[idx][2]];
+    const availLabel = i => i.available === true ? '<span class="av y">Available</span>' : i.available === false ? '<span class="av n">Not available</span>' : o.status === 'new' ? '<span class="av c">Checking availability</span>' : '<span class="av y">Available</span>';
+    $('#trackResult').hidden = false;
+    $('#trackResult').innerHTML = `
+      <div class="t-head ${cancelled ? 'bad' : ''}"><div><p class="eyebrow">Order ${esc(o.ref)}</p><h2>${esc(head[0])}</h2><p>${esc(head[1])}</p></div><span class="t-pulse"></span></div>
+      ${cancelled ? '' : `<ol class="t-steps">${STEPS.map((s, n) => `<li class="${n < idx ? 'done' : n === idx ? 'cur' : ''}"><i></i><span>${s[1]}</span></li>`).join('')}</ol>`}
+      <div class="t-card note"><p class="eyebrow">Message from Rashida</p><p>${o.customer_note ? esc(o.customer_note) : 'Rashida will post an update here soon.'}</p>${o.eta ? `<p class="eta">Expected: <b>${esc(o.eta)}</b></p>` : ''}</div>
+      <div class="t-card"><p class="eyebrow">Your items</p><ul class="t-items">${(o.items || []).map(i => `<li><div><b>${esc(i.name)}</b>${i.note ? `<small>“${esc(i.note)}”</small>` : ''}<small>Quantity ${i.qty}</small></div>${availLabel(i)}</li>`).join('')}</ul></div>
+      <div class="t-card two-col"><div><p class="eyebrow">${o.fulfilment === 'Delivery' ? 'Delivery' : 'Pickup'}</p><p>${o.fulfilment === 'Delivery' ? esc(o.address || '') : 'NIMA / UPSA, Accra'}</p>${o.event_date ? `<small>${new Date(o.event_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}${o.event_time ? ' at ' + esc(o.event_time) : ''}</small>` : ''}</div>
+        <div><p class="eyebrow">Payment</p><p>${o.total ? '<b>' + money(o.total) + '</b>' : 'To be confirmed'}</p><small>${o.paid ? 'Paid' : o.total ? 'Awaiting payment' : ''}</small></div></div>
+      <p class="t-foot">Last updated ${when(o.updated_at)} · <button type="button" class="linkbtn" id="trackRefresh">Refresh</button></p>
+      <a class="btn ghost wide" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hello TheNobles, a question about my order ' + o.ref)}" target="_blank" rel="noopener">Questions? Chat with us on WhatsApp</a>`;
+    $('#trackResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  async function load(ref, phone, quiet) {
+    const err = $('#trackErr'); err.hidden = true;
+    const btn = $('#trackBtn'); if (!quiet) { btn.disabled = true; btn.textContent = 'Looking up…'; }
+    try {
+      if (!HAS_BACKEND) throw new Error('offline');
+      const o = await SB.rpc('track_order', { p_ref: ref, p_phone: phone });
+      if (!o) { if (!quiet) { err.textContent = 'We could not find that order. Check the order number and the phone number you used.'; err.hidden = false; $('#trackResult').hidden = true; } return; }
+      current = { ref: o.ref, phone }; rememberOrder(o.ref, phone); renderSaved(); render(o);
+      clearInterval(timer); timer = setInterval(() => load(current.ref, current.phone, true), 30000);
+    } catch (x) { if (!quiet) { err.textContent = 'Something went wrong. Please try again.'; err.hidden = false; } }
+    finally { btn.disabled = false; btn.textContent = 'Track order'; }
+  }
+  trackForm.addEventListener('submit', e => { e.preventDefault(); const f = new FormData(trackForm); load(String(f.get('ref')).trim(), String(f.get('phone')).trim()); });
+  document.addEventListener('click', e => {
+    const c = e.target.closest('[data-tref]');
+    if (c) { const o = saved().find(x => x.ref === c.dataset.tref); if (o) { trackForm.ref.value = o.ref; trackForm.phone.value = o.phone; load(o.ref, o.phone); } }
+    if (e.target.closest('#trackRefresh') && current) load(current.ref, current.phone);
+  });
+  renderSaved();
+  const qref = (new URLSearchParams(location.search).get('ref') || '').toUpperCase();
+  if (qref) {
+    trackForm.ref.value = qref;
+    const o = saved().find(x => x.ref === qref);
+    if (o) { trackForm.phone.value = o.phone; load(o.ref, o.phone); }
+  } else if (saved()[0]) { trackForm.ref.value = saved()[0].ref; trackForm.phone.value = saved()[0].phone; }
+}
 
 /* ---------- misc ---------- */
 let tt; function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 1600); }
